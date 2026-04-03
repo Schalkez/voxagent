@@ -14,7 +14,7 @@
 
 ---
 
-## Phase 1 — MVP: Voice Command & Respond
+## Phase 1 — Enterprise Core Foundation: Voice Command & Respond
 
 **Goal:** Nói lệnh đơn giản, VoxAgent thực hiện và trả lời bằng giọng.
 

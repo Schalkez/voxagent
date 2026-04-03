@@ -1,12 +1,12 @@
 # 🗺️ VOXAGENT Roadmap
 
-> Trạng thái: **Pre-alpha** — đang build MVP
+> Trạng thái: **Active Development** — Enterprise Production Architecture
 
 Roadmap này được cập nhật sau mỗi milestone. Community có thể vote và comment trên [GitHub Discussions](https://github.com/your-org/voxagent/discussions/categories/roadmap).
 
 ---
 
-## Phase 1 — MVP: Voice Command & Respond (Tuần 1–2)
+## Phase 1 — Enterprise Core Foundation: Voice Command & Respond (Tuần 1–2)
 
 **Goal:** Nói được lệnh đơn giản, VoxAgent thực hiện và trả lời bằng giọng.
 
