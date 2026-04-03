@@ -1,0 +1,17 @@
+# VoxAgent Code Owners
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything
+*       @your-github-username
+
+# Core logic requires strict review
+/core/  @your-github-username
+
+# Providers and external integrations
+/providers/ @your-github-username
+
+# CI/CD and DevOps
+/.github/ @your-github-username
+
+# Dashboard and UI
+/dashboard/ @your-github-username

@@ -1,0 +1,132 @@
+[project]
+name = "voxagent"
+version = "0.1.0"
+description = "Voice-controlled desktop AI agent"
+requires-python = ">=3.12"
+license = "Apache-2.0"
+authors = [{ name = "VoxAgent Team" }]
+
+dependencies = [
+    "sounddevice>=0.5.1",
+    "numpy>=1.26",
+    "keyring>=25.0",
+    "pydantic>=2.9",
+    "aiosqlite>=0.20",
+    "httpx>=0.28",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.8",
+    "mypy>=1.13",
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=6.0",
+    "pre-commit>=4.0",
+    "bandit>=1.8",
+    "interrogate>=1.7",
+    "vulture>=2.13",
+]
+
+[project.scripts]
+voxagent = "core.app:main"
+
+[build-system]
+requires = ["setuptools>=75.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["core*", "providers*", "platform*", "skills*"]
+
+# ── RUFF ──────────────────────────────────────────
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+exclude = [".agent/", ".venv/", "dashboard/"]
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "F",      # pyflakes
+    "W",      # pycodestyle warnings
+    "I",      # isort (import sorting)
+    "N",      # pep8-naming
+    "UP",     # pyupgrade (modern syntax)
+    "B",      # flake8-bugbear
+    "A",      # flake8-builtins
+    "SIM",    # flake8-simplify
+    "ASYNC",  # flake8-async
+    "PTH",    # flake8-use-pathlib
+    "RUF",    # ruff-specific
+]
+ignore = [
+    "E501",   # line too long (formatter handles)
+    "A005",   # platform module shadows stdlib (intentional)
+    "ASYNC110", # asyncio.sleep in while loop (placeholder pattern)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["core", "providers", "platform", "skills"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+# ── MYPY ──────────────────────────────────────────
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+exclude = ["tests/", "docs/", "dashboard/"]
+
+[[tool.mypy.overrides]]
+module = ["sounddevice.*", "pystray.*", "pyautogui.*"]
+ignore_missing_imports = true
+
+# ── PYTEST ────────────────────────────────────────
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: integration tests requiring external services",
+    "platform: platform-specific tests (use with --platform flag)",
+]
+addopts = "-v --tb=short"
+
+[tool.coverage.run]
+source = ["core", "providers", "skills", "platform"]
+omit = ["*/tests/*", "*/__pycache__/*"]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.",
+    "@abstractmethod",
+]
+
+# ── BANDIT (Security) ─────────────────────────────
+[tool.bandit]
+targets = ["core", "providers", "skills", "platform"]
+skips = ["B101"]
+recursive = true
+
+# ── INTERROGATE (Docstring coverage) ──────────────
+[tool.interrogate]
+ignore-init-method = true
+ignore-init-module = true
+ignore-magic = true
+ignore-private = true
+fail-under = 80
+exclude = ["tests", "docs"]
+verbose = 1
+quiet = false
+color = true

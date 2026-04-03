@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+*.egg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Project-specific
+*.db
+*.db-journal
+config.yaml
+!config.example.yaml
+
+# Dashboard
+dashboard/node_modules/
+dashboard/dist/
+
+# Agent skills (installed, not tracked)
+.agent/skills/react-best-practices/
+.agent/skills/composition-patterns/
+.agent/skills/react-view-transitions/
+.agent/skills/web-design-guidelines/
+.agent/skills/vite/
+.agent/skills/vitest/
+.agent/skills/obra-superpowers-pack/
+.agent/skills/agents/

@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@700;900&amp;family=JetBrains+Mono:wght@400;500&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-secondary": "#003640",
+            "tertiary-fixed": "#ffdcbf",
+            "secondary-fixed-dim": "#a1cedb",
+            "outline-variant": "#3d494c",
+            "on-error": "#690005",
+            "on-tertiary-fixed": "#2d1600",
+            "on-tertiary-container": "#5b3200",
+            "surface-container-lowest": "#0e0e10",
+            "secondary-container": "#1e4d58",
+            "surface-dim": "#131315",
+            "inverse-surface": "#e5e1e4",
+            "primary": "#4cd7f6",
+            "tertiary": "#ffb873",
+            "primary-fixed": "#acedff",
+            "on-primary-fixed": "#001f26",
+            "on-background": "#e5e1e4",
+            "tertiary-container": "#e89337",
+            "on-primary-container": "#00424f",
+            "on-secondary-fixed-variant": "#1e4d58",
+            "background": "#131315",
+            "surface-container-high": "#2a2a2c",
+            "surface-tint": "#4cd7f6",
+            "on-surface-variant": "#bcc9cd",
+            "surface-variant": "#353437",
+            "surface-container": "#201f22",
+            "surface-bright": "#39393b",
+            "on-primary": "#003640",
+            "on-primary-fixed-variant": "#004e5c",
+            "surface-container-low": "#1c1b1d",
+            "outline": "#869397",
+            "surface-container-highest": "#353437",
+            "surface": "#131315",
+            "error": "#ffb4ab",
+            "primary-container": "#06b6d4",
+            "on-tertiary-fixed-variant": "#6a3b00",
+            "inverse-on-surface": "#313032",
+            "primary-fixed-dim": "#4cd7f6",
+            "on-secondary-fixed": "#001f26",
+            "on-surface": "#e5e1e4",
+            "on-tertiary": "#4b2800",
+            "on-error-container": "#ffdad6",
+            "tertiary-fixed-dim": "#ffb873",
+            "error-container": "#93000a",
+            "inverse-primary": "#00687a",
+            "secondary-fixed": "#bceaf7",
+            "secondary": "#a1cedb",
+            "on-secondary-container": "#90bcc9"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "fontFamily": {
+            "headline": ["Space Grotesk"],
+            "body": ["Inter"],
+            "label": ["Inter"],
+            "mono": ["JetBrains Mono"]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    body {
+      background-color: #09090B;
+      color: #E5E1E4;
+      font-family: 'Inter', sans-serif;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    input[type="range"] {
+      -webkit-appearance: none;
+      background: transparent;
+    }
+    input[type="range"]::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 4px;
+      background: #27272A;
+      border-radius: 2px;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 12px;
+      width: 12px;
+      border-radius: 50%;
+      background: #06B6D4;
+      cursor: pointer;
+      margin-top: -4px;
+    }
+  </style>
+</head>
+<body class="flex min-h-screen">
+<!-- SideNavBar -->
+<aside class="fixed top-0 left-0 h-screen w-64 bg-[#18181B] border-r border-zinc-800/20 flex flex-col py-8 z-50">
+<div class="px-6 mb-10">
+<h1 class="text-2xl font-black text-cyan-500 font-headline tracking-tighter">JARVIS</h1>
+<p class="text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-500 mt-1">Active Intelligence</p>
+</div>
+<nav class="flex-1 space-y-1">
+<div class="flex items-center gap-3 px-4 py-3 text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/50 transition-all duration-200 cursor-pointer">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-headline text-xs font-medium uppercase tracking-widest">Overview</span>
+</div>
+<div class="flex items-center gap-3 px-4 py-3 text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/50 transition-all duration-200 cursor-pointer">
+<span class="material-symbols-outlined">cloud_sync</span>
+<span class="font-headline text-xs font-medium uppercase tracking-widest">Providers</span>
+</div>
+<div class="flex items-center gap-3 px-4 py-3 text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/50 transition-all duration-200 cursor-pointer">
+<span class="material-symbols-outlined">alt_route</span>
+<span class="font-headline text-xs font-medium uppercase tracking-widest">Routing</span>
+</div>
+<div class="flex items-center gap-3 px-4 py-3 text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/50 transition-all duration-200 cursor-pointer">
+<span class="material-symbols-outlined">extension</span>
+<span class="font-headline text-xs font-medium uppercase tracking-widest">Skills</span>
+</div>
+<!-- Active Tab -->
+<div class="flex items-center gap-3 px-4 py-3 text-cyan-400 bg-cyan-500/5 rounded-r-lg border-l-2 border-cyan-500 cursor-pointer">
+<span class="material-symbols-outlined">devices</span>
+<span class="font-headline text-xs font-medium uppercase tracking-widest font-bold">Devices</span>
+</div>
+</nav>
+<div class="mt-auto px-4 space-y-1">
+<div class="flex items-center gap-3 px-4 py-3 text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/50 transition-all duration-200 cursor-pointer">
+<span class="material-symbols-outlined">help</span>
+<span class="font-headline text-xs font-medium uppercase tracking-widest">Support</span>
+</div>
+<div class="flex items-center gap-3 px-4 py-3 text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/50 transition-all duration-200 cursor-pointer">
+<span class="material-symbols-outlined">terminal</span>
+<span class="font-headline text-xs font-medium uppercase tracking-widest">Logs</span>
+</div>
+</div>
+</aside>
+<!-- Main Content Wrapper -->
+<main class="flex-1 ml-64 flex flex-col bg-[#09090B]">
+<!-- TopNavBar -->
+<header class="w-full h-16 border-b border-zinc-800/50 bg-[#09090B] flex justify-between items-center px-8">
+<div class="flex items-center gap-2">
+<span class="text-zinc-400 font-headline text-sm tracking-tight">JARVIS</span>
+<span class="text-zinc-600">/</span>
+<span class="text-cyan-400 font-headline text-sm tracking-tight font-bold">Devices</span>
+</div>
+<div class="flex items-center gap-6">
+<span class="material-symbols-outlined text-zinc-400 hover:text-cyan-300 transition-colors cursor-pointer">mic_off</span>
+<span class="material-symbols-outlined text-cyan-400 font-bold hover:text-cyan-300 transition-colors cursor-pointer">settings</span>
+<span class="material-symbols-outlined text-zinc-400 hover:text-cyan-300 transition-colors cursor-pointer">notifications</span>
+<div class="h-8 w-8 rounded-full bg-zinc-800 border border-zinc-700 overflow-hidden">
+<img alt="User Profile Avatar" class="w-full h-full object-cover" data-alt="professional portrait of a tech executive with neutral background soft studio lighting clean composition" src="https://lh3.googleusercontent.com/aida-public/AB6AXuACixq3LPNgAxFY_JR48R5ORsg3kJ1QEe47SJR5lMsukxqMFW9Ntca62Gc60fyko63HfdDnu3jNKwY1wqz-jVHK050qgPTn3b2r8QwNY-KBzabKGU_pD6J3L2m6oqe5ZKPvoQGJbSkjEiYCT_G57aTvkZXu_33-KWTtr8QgzM0W6n44Vgj9AlVEo8FBQjrHlzbv1LGd2YFAZmmBfz3pcAM0GE0tFhB8dM_o0jdvXX-2-PUZ7yhT1UMktA3cSN3tnWgnD-jwZrJIfDA"/>
+</div>
+</div>
+</header>
+<!-- Content Canvas -->
+<div class="p-8 space-y-8">
+<header>
+<h2 class="text-3xl font-bold font-headline text-[#FAFAFA] tracking-tight">Device Settings</h2>
+<p class="text-zinc-500 text-sm mt-1">Configure your local hardware interfaces and neural voice synthesis.</p>
+</header>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+<!-- Card 1: Microphone Setup -->
+<section class="bg-[#18181B] rounded-xl p-6 border border-white/[0.03] shadow-2xl">
+<div class="flex items-center gap-3 mb-8">
+<span class="material-symbols-outlined text-cyan-500">mic</span>
+<h3 class="font-headline text-sm font-medium uppercase tracking-widest text-[#FAFAFA]">Microphone Setup</h3>
+</div>
+<div class="space-y-8">
+<!-- Dropdown -->
+<div class="space-y-2">
+<label class="text-[11px] font-medium uppercase tracking-wider text-zinc-500">Input Device</label>
+<div class="relative group">
+<select class="w-full bg-transparent border-b border-zinc-800 focus:border-cyan-500 outline-none py-2 text-sm text-[#E5E1E4] appearance-none cursor-pointer">
+<option>MacBook Pro Microphone</option>
+<option>External USB Interface</option>
+<option>Studio Condenser (XLR)</option>
+</select>
+<span class="material-symbols-outlined absolute right-0 bottom-2 text-zinc-600 pointer-events-none group-hover:text-cyan-500 transition-colors">expand_more</span>
+</div>
+</div>
+<!-- Audio Meter -->
+<div class="space-y-3">
+<div class="flex justify-between items-end">
+<label class="text-[11px] font-medium uppercase tracking-wider text-zinc-500">Input Level</label>
+<span class="font-mono text-[10px] text-cyan-400">-12.4 dB</span>
+</div>
+<div class="h-1.5 w-full bg-zinc-900 rounded-full overflow-hidden">
+<div class="h-full w-[40%] bg-gradient-to-r from-cyan-600 to-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.3)]"></div>
+</div>
+<p class="text-[10px] italic text-zinc-500 flex items-center gap-2">
+<span class="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-pulse"></span>
+                Testing... Speak into your mic
+              </p>
+</div>
+<!-- Toggle -->
+<div class="flex items-center justify-between pt-4 border-t border-zinc-800/50">
+<div>
+<p class="text-sm font-medium text-[#FAFAFA]">Enable Wake Word</p>
+<p class="text-[11px] text-zinc-500 mt-0.5">Listen for "JARVIS" in the background</p>
+</div>
+<button class="relative inline-flex h-5 w-10 items-center rounded-full bg-cyan-500/20 transition-colors focus:outline-none">
+<span class="inline-block h-3.5 w-3.5 transform rounded-full bg-cyan-500 transition-transform translate-x-5.5 ml-1"></span>
+</button>
+</div>
+</div>
+</section>
+<!-- Card 2: Speaker & Voice Setup -->
+<section class="bg-[#18181B] rounded-xl p-6 border border-white/[0.03] shadow-2xl">
+<div class="flex items-center gap-3 mb-8">
+<span class="material-symbols-outlined text-cyan-500">volume_up</span>
+<h3 class="font-headline text-sm font-medium uppercase tracking-widest text-[#FAFAFA]">Speaker &amp; Voice Setup</h3>
+</div>
+<div class="space-y-6">
+<!-- Dropdowns Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="space-y-2">
+<label class="text-[11px] font-medium uppercase tracking-wider text-zinc-500">Output Device</label>
+<div class="relative">
+<select class="w-full bg-transparent border-b border-zinc-800 focus:border-cyan-500 outline-none py-2 text-sm text-[#E5E1E4] appearance-none">
+<option>System Default</option>
+<option>Built-in Speakers</option>
+<option>Studio Monitors</option>
+</select>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-[11px] font-medium uppercase tracking-wider text-zinc-500">TTS Engine</label>
+<div class="relative">
+<select class="w-full bg-transparent border-b border-zinc-800 focus:border-cyan-500 outline-none py-2 text-sm text-[#E5E1E4] appearance-none">
+<option>Piper TTS - Local</option>
+<option>OpenAI Whisper</option>
+<option>ElevenLabs Cloud</option>
+</select>
+</div>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-[11px] font-medium uppercase tracking-wider text-zinc-500">Voice Profile</label>
+<div class="relative">
+<select class="w-full bg-transparent border-b border-zinc-800 focus:border-cyan-500 outline-none py-2 text-sm text-[#E5E1E4] appearance-none">
+<option>vi-VN-hoaimy-medium</option>
+<option>en-US-amy-high</option>
+<option>en-GB-james-neutral</option>
+</select>
+</div>
+</div>
+<!-- Sliders -->
+<div class="space-y-6 py-4">
+<div class="space-y-3">
+<div class="flex justify-between">
+<label class="text-[11px] font-medium uppercase tracking-wider text-zinc-500">Speech Speed</label>
+<span class="font-mono text-[10px] text-cyan-400">1.0x</span>
+</div>
+<input class="w-full" max="2.0" min="0.5" step="0.1" type="range" value="1.0"/>
+</div>
+<div class="space-y-3">
+<div class="flex justify-between">
+<label class="text-[11px] font-medium uppercase tracking-wider text-zinc-500">Volume</label>
+<span class="font-mono text-[10px] text-cyan-400">75%</span>
+</div>
+<input class="w-full" max="100" min="0" type="range" value="75"/>
+</div>
+</div>
+<!-- Action Button -->
+<button class="w-full mt-4 bg-gradient-to-br from-cyan-500 to-cyan-700 text-[#003640] font-bold py-3 px-6 rounded-xl flex items-center justify-center gap-2 hover:shadow-[0_0_20px_rgba(6,182,212,0.3)] transition-all active:scale-95">
+<span class="material-symbols-outlined text-[20px]">play_arrow</span>
+<span class="font-headline text-sm tracking-tight">Test Voice</span>
+</button>
+</div>
+</section>
+</div>
+<!-- Footer Info / Log Mockup -->
+<footer class="mt-auto border-t border-zinc-800/20 pt-8">
+<div class="bg-zinc-900/50 rounded-xl p-4 flex items-center gap-4">
+<div class="h-10 w-10 flex items-center justify-center rounded-full bg-cyan-500/10 border border-cyan-500/20">
+<span class="material-symbols-outlined text-cyan-500">info</span>
+</div>
+<div>
+<h4 class="text-xs font-bold text-cyan-400 uppercase tracking-widest">Neural Status</h4>
+<p class="text-xs text-zinc-500 font-mono mt-1">Core device bridge connected via 127.0.0.1:5001. All local processing enabled.</p>
+</div>
+</div>
+</footer>
+</div>
+</main>
+<!-- Pulse Module (Signature AI Component) -->
+<div class="fixed bottom-8 right-8 z-[60]">
+<div class="relative w-16 h-16 rounded-full bg-[#18181B] backdrop-blur-xl border border-white/10 flex items-center justify-center group cursor-pointer shadow-[0_20px_40px_rgba(0,0,0,0.4)]">
+<div class="absolute inset-0 bg-cyan-500/20 rounded-full animate-ping opacity-20"></div>
+<div class="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-400 to-cyan-600 shadow-[0_0_15px_rgba(6,182,212,0.6)]"></div>
+</div>
+</div>
+</body></html>

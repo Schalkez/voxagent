@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>JARVIS | Smart Tier Routing</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .pulse-glow {
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.2);
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-fixed": "#ffdcbf",
+                        "inverse-primary": "#00687a",
+                        "secondary": "#a1cedb",
+                        "on-background": "#e5e1e4",
+                        "surface-dim": "#09090B",
+                        "secondary-fixed-dim": "#a1cedb",
+                        "outline-variant": "#3d494c",
+                        "on-surface-variant": "#bcc9cd",
+                        "primary-fixed-dim": "#4cd7f6",
+                        "error-container": "#93000a",
+                        "on-surface": "#e5e1e4",
+                        "on-tertiary": "#4b2800",
+                        "on-tertiary-fixed-variant": "#6a3b00",
+                        "on-secondary-container": "#90bcc9",
+                        "tertiary-container": "#e89337",
+                        "secondary-fixed": "#bceaf7",
+                        "on-secondary-fixed-variant": "#1e4d58",
+                        "on-tertiary-container": "#5b3200",
+                        "surface-container": "#18181B",
+                        "primary-fixed": "#acedff",
+                        "error": "#ffb4ab",
+                        "surface-variant": "#353437",
+                        "surface-bright": "#39393b",
+                        "on-secondary": "#003640",
+                        "on-primary-container": "#00424f",
+                        "primary-container": "#06b6d4",
+                        "tertiary-fixed-dim": "#ffb873",
+                        "surface-container-low": "#131315",
+                        "surface-container-highest": "#27272A",
+                        "on-primary-fixed": "#001f26",
+                        "on-secondary-fixed": "#001f26",
+                        "inverse-surface": "#e5e1e4",
+                        "background": "#09090B",
+                        "surface-tint": "#4cd7f6",
+                        "primary": "#06B6D4",
+                        "on-primary-fixed-variant": "#004e5c",
+                        "inverse-on-surface": "#313032",
+                        "secondary-container": "#1e4d58",
+                        "outline": "#869397",
+                        "on-tertiary-fixed": "#2d1600",
+                        "on-error-container": "#ffdad6",
+                        "surface-container-high": "#2a2a2c",
+                        "tertiary": "#ffb873",
+                        "on-error": "#690005",
+                        "surface-container-lowest": "#0e0e10",
+                        "surface": "#09090B",
+                        "on-primary": "#003640"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Inter"],
+                        "label": ["Inter"],
+                        "mono": ["JetBrains Mono"]
+                    }
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background font-body selection:bg-primary/30 antialiased no-scrollbar">
+<!-- Shared SideNavBar -->
+<aside class="fixed left-0 top-0 h-full w-[260px] bg-zinc-950 flex flex-col py-8 px-6 z-50">
+<div class="mb-12 flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-cyan-500 text-xl">hub</span>
+</div>
+<div>
+<h1 class="text-xl font-bold text-cyan-500 tracking-widest font-headline">JARVIS</h1>
+<p class="text-[10px] text-zinc-500 font-medium tracking-tighter uppercase">Active Intelligence</p>
+</div>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-zinc-500 font-medium hover:text-zinc-300 hover:bg-zinc-900/50 transition-colors duration-200 group active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-headline tracking-tight">Overview</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-zinc-500 font-medium hover:text-zinc-300 hover:bg-zinc-900/50 transition-colors duration-200 group active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">hub</span>
+<span class="font-headline tracking-tight">Providers</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-cyan-400 font-bold border-r-2 border-cyan-400 bg-zinc-900/50 transition-colors duration-200 group active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">alt_route</span>
+<span class="font-headline tracking-tight">Routing</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-zinc-500 font-medium hover:text-zinc-300 hover:bg-zinc-900/50 transition-colors duration-200 group active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">extension</span>
+<span class="font-headline tracking-tight">Skills</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-zinc-500 font-medium hover:text-zinc-300 hover:bg-zinc-900/50 transition-colors duration-200 group active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-headline tracking-tight">Settings</span>
+</a>
+</nav>
+<div class="mt-auto pt-6 border-t border-zinc-900">
+<button class="w-full py-3 px-4 rounded-lg bg-zinc-900 text-cyan-400 font-bold text-sm tracking-widest uppercase hover:bg-zinc-800 transition-all active:scale-95 duration-150">
+                System Check
+            </button>
+</div>
+</aside>
+<!-- Shared TopAppBar -->
+<header class="fixed top-0 right-0 w-[calc(100%-260px)] h-16 bg-zinc-950/70 backdrop-blur-xl flex items-center justify-between px-8 border-b border-zinc-800/20 z-40">
+<div class="flex items-center gap-4">
+<span class="text-zinc-500 text-xs font-label uppercase tracking-wider">JARVIS</span>
+<span class="text-zinc-700 text-xs">/</span>
+<span class="text-cyan-400 text-xs font-label uppercase tracking-wider">Routing</span>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-4 mr-4">
+<button class="text-zinc-500 hover:text-cyan-300 transition-opacity text-sm font-label uppercase tracking-wider">Logs</button>
+<button class="px-4 py-1.5 rounded-lg bg-gradient-to-br from-primary to-on-primary-container text-white text-xs font-bold uppercase tracking-widest shadow-lg shadow-primary/10 hover:shadow-primary/20 transition-all">Execute</button>
+</div>
+<div class="flex items-center gap-4 border-l border-zinc-800/50 pl-6">
+<span class="material-symbols-outlined text-zinc-500 cursor-pointer hover:text-cyan-400 transition-colors">notifications_active</span>
+<div class="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="professional user headshot for profile avatar, soft studio lighting, minimalist dark background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBWkz58NDqC53BTPN5Z4SdhcxK1ccsDhJR7J1TfD7dQBW1EFMYX4WWxf8IUgTMJxxS4w4Bap4YMITFIY1oie7wCpxwKuym4rSAo1-6JZsvlkWk1DVUGyNJAHs18pzAhnUfDb69BVLfqdcgsg16LsCX7zWRah4rZ0EGva5z-7-WgT96psDshRmkAje-s1HSBXkDut0WGtehSy0sa--DciYhbLFXaj86Iwa1hvCQDrapSYqxhZO3-5sISX7FtBBpboHvP16Hqr9Y0bQI"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="ml-[260px] pt-16 min-h-screen">
+<div class="p-8 max-w-6xl mx-auto">
+<!-- Header Section -->
+<section class="mb-12">
+<div class="flex flex-col gap-2 mb-8">
+<h2 class="text-4xl font-bold text-white font-headline tracking-tight">Intelligence Routing</h2>
+<p class="text-zinc-400 text-lg font-light">Configure which AI models handle different levels of task complexity.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<button class="group flex flex-col p-6 rounded-xl border border-zinc-800 bg-surface-container-low hover:border-zinc-700 transition-all text-left">
+<div class="flex items-center justify-between mb-2">
+<span class="material-symbols-outlined text-zinc-500 group-hover:text-zinc-300">cloud_off</span>
+<div class="w-2 h-2 rounded-full bg-zinc-800"></div>
+</div>
+<span class="text-white font-bold tracking-tight mb-1">Fully Local (Offline)</span>
+<span class="text-zinc-500 text-xs font-label uppercase tracking-widest">Privacy Focus</span>
+</button>
+<button class="group flex flex-col p-6 rounded-xl border-2 border-primary bg-primary/5 pulse-glow transition-all text-left relative overflow-hidden">
+<div class="absolute top-0 right-0 w-24 h-24 bg-primary/10 blur-3xl -mr-8 -mt-8"></div>
+<div class="flex items-center justify-between mb-2">
+<span class="material-symbols-outlined text-primary">bolt</span>
+<div class="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+</div>
+<span class="text-white font-bold tracking-tight mb-1">Speed &amp; Free Cloud</span>
+<span class="text-primary text-xs font-label uppercase tracking-widest">Efficiency Balanced</span>
+</button>
+<button class="group flex flex-col p-6 rounded-xl border border-zinc-800 bg-surface-container-low hover:border-zinc-700 transition-all text-left">
+<div class="flex items-center justify-between mb-2">
+<span class="material-symbols-outlined text-zinc-500 group-hover:text-zinc-300">rocket_launch</span>
+<div class="w-2 h-2 rounded-full bg-zinc-800"></div>
+</div>
+<span class="text-white font-bold tracking-tight mb-1">Max Performance</span>
+<span class="text-zinc-500 text-xs font-label uppercase tracking-widest">Complex Reasoner</span>
+</button>
+</div>
+</section>
+<!-- Routing Pipeline -->
+<section class="relative">
+<!-- Visual Connection Line -->
+<div class="absolute left-12 top-0 bottom-0 w-[1px] bg-gradient-to-b from-primary/50 via-zinc-800 to-transparent z-0 ml-[-0.5px]"></div>
+<div class="flex flex-col gap-6 relative z-10">
+<!-- Tier 1 Card -->
+<div class="flex flex-col lg:flex-row items-center gap-8 p-8 rounded-xl bg-surface-container border border-zinc-800/50 hover:border-zinc-700 transition-colors group">
+<div class="flex items-center gap-6 flex-1 w-full">
+<div class="w-12 h-12 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0">
+<span class="text-cyan-400 font-bold font-mono">T1</span>
+</div>
+<div class="flex flex-col">
+<h3 class="text-white font-bold text-lg font-headline">Tier 1 (Speed &amp; Simple)</h3>
+<p class="text-zinc-500 text-sm">Fastest. Used for simple intents, parsing, and extraction.</p>
+</div>
+</div>
+<div class="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
+<div class="flex flex-col gap-1.5">
+<label class="text-[10px] text-zinc-600 font-bold uppercase tracking-widest px-1">Provider</label>
+<div class="relative min-w-[140px]">
+<select class="appearance-none w-full bg-zinc-950 border-b border-zinc-800 text-zinc-300 text-sm py-2 px-3 focus:outline-none focus:border-primary transition-colors cursor-pointer">
+<option selected="">Groq</option>
+<option>OpenAI</option>
+<option>Mistral</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-2 text-zinc-600 pointer-events-none text-sm">expand_more</span>
+</div>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="text-[10px] text-zinc-600 font-bold uppercase tracking-widest px-1">Model</label>
+<div class="relative min-w-[220px]">
+<select class="appearance-none w-full bg-zinc-950 border-b border-zinc-800 text-zinc-300 font-mono text-sm py-2 px-3 focus:outline-none focus:border-primary transition-colors cursor-pointer">
+<option selected="">llama-3.1-8b-instant</option>
+<option>mixtral-8x7b-32768</option>
+<option>gemma-7b-it</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-2 text-zinc-600 pointer-events-none text-sm">expand_more</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Tier 2 Card -->
+<div class="flex flex-col lg:flex-row items-center gap-8 p-8 rounded-xl bg-surface-container border border-zinc-800/50 hover:border-zinc-700 transition-colors group">
+<div class="flex items-center gap-6 flex-1 w-full">
+<div class="w-12 h-12 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0">
+<span class="text-cyan-400 font-bold font-mono">T2</span>
+</div>
+<div class="flex flex-col">
+<h3 class="text-white font-bold text-lg font-headline">Tier 2 (Reasoning)</h3>
+<p class="text-zinc-500 text-sm">Balanced. Used for logic, file management, and multi-step plans.</p>
+</div>
+</div>
+<div class="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
+<div class="flex flex-col gap-1.5">
+<label class="text-[10px] text-zinc-600 font-bold uppercase tracking-widest px-1">Provider</label>
+<div class="relative min-w-[140px]">
+<select class="appearance-none w-full bg-zinc-950 border-b border-zinc-800 text-zinc-300 text-sm py-2 px-3 focus:outline-none focus:border-primary transition-colors cursor-pointer">
+<option selected="">Ollama</option>
+<option>Azure AI</option>
+<option>AWS Bedrock</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-2 text-zinc-600 pointer-events-none text-sm">expand_more</span>
+</div>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="text-[10px] text-zinc-600 font-bold uppercase tracking-widest px-1">Model</label>
+<div class="relative min-w-[220px]">
+<select class="appearance-none w-full bg-zinc-950 border-b border-zinc-800 text-zinc-300 font-mono text-sm py-2 px-3 focus:outline-none focus:border-primary transition-colors cursor-pointer">
+<option selected="">qwen2.5:7b</option>
+<option>llama3:8b-instruct</option>
+<option>mistral-v0.3</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-2 text-zinc-600 pointer-events-none text-sm">expand_more</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Tier 3 Card -->
+<div class="flex flex-col lg:flex-row items-center gap-8 p-8 rounded-xl bg-surface-container border border-zinc-800/50 hover:border-zinc-700 transition-colors group">
+<div class="flex items-center gap-6 flex-1 w-full">
+<div class="w-12 h-12 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0">
+<span class="text-cyan-400 font-bold font-mono">T3</span>
+</div>
+<div class="flex flex-col">
+<h3 class="text-white font-bold text-lg font-headline">Tier 3 (Complex &amp; Vision)</h3>
+<p class="text-zinc-500 text-sm">Heavy lifting. Used for code review, screen reading, and complex problem solving.</p>
+</div>
+</div>
+<div class="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
+<div class="flex flex-col gap-1.5">
+<label class="text-[10px] text-zinc-600 font-bold uppercase tracking-widest px-1">Provider</label>
+<div class="relative min-w-[140px]">
+<select class="appearance-none w-full bg-zinc-950 border-b border-zinc-800 text-zinc-300 text-sm py-2 px-3 focus:outline-none focus:border-primary transition-colors cursor-pointer">
+<option selected="">Anthropic</option>
+<option>Google Vertex</option>
+<option>OpenAI</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-2 text-zinc-600 pointer-events-none text-sm">expand_more</span>
+</div>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="text-[10px] text-zinc-600 font-bold uppercase tracking-widest px-1">Model</label>
+<div class="flex flex-col gap-2">
+<div class="relative min-w-[220px]">
+<select class="appearance-none w-full bg-zinc-950 border-b border-zinc-800 text-zinc-300 font-mono text-sm py-2 px-3 focus:outline-none focus:border-primary transition-colors cursor-pointer">
+<option selected="">claude-3-5-sonnet</option>
+<option>gpt-4o-2024-08-06</option>
+<option>gemini-1.5-pro</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-2 text-zinc-600 pointer-events-none text-sm">expand_more</span>
+</div>
+<div class="flex items-center gap-1.5 px-1">
+<span class="material-symbols-outlined text-tertiary-container text-[14px]">warning</span>
+<span class="text-[10px] text-tertiary-container font-bold uppercase tracking-tighter">High Cost</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Intelligence Chip Status (Pulse) -->
+<div class="mt-16 flex items-center justify-center">
+<div class="bg-surface-container-high px-6 py-3 rounded-full flex items-center gap-4 border border-zinc-800/50">
+<div class="relative flex items-center justify-center">
+<div class="absolute inset-0 bg-primary/20 blur-md rounded-full animate-pulse"></div>
+<div class="w-3 h-3 bg-primary rounded-full relative z-10"></div>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] text-zinc-500 font-label uppercase tracking-widest leading-none mb-1">Routing Engine</span>
+<span class="text-xs text-white font-mono leading-none">Status: Optimized for latency</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Floating Action Button (FAB) - Suppressed as per context rules for details/settings screens -->
+<!-- Content prioritizes the Canvas -->
+</body></html>

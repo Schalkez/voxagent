@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>JARVIS Initial Setup</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@500;700&amp;family=JetBrains+Mono&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-variant": "#353437",
+                        "secondary-container": "#1e4d58",
+                        "on-primary-fixed-variant": "#004e5c",
+                        "surface-container-lowest": "#0e0e10",
+                        "secondary": "#a1cedb",
+                        "surface-container-highest": "#353437",
+                        "surface-container-low": "#1c1b1d",
+                        "secondary-fixed-dim": "#a1cedb",
+                        "on-error": "#690005",
+                        "outline-variant": "#3d494c",
+                        "on-tertiary-fixed-variant": "#6a3b00",
+                        "surface": "#131315",
+                        "on-surface": "#e5e1e4",
+                        "on-tertiary-fixed": "#2d1600",
+                        "on-tertiary-container": "#5b3200",
+                        "primary-fixed": "#acedff",
+                        "primary": "#4cd7f6",
+                        "on-primary-fixed": "#001f26",
+                        "error": "#ffb4ab",
+                        "on-surface-variant": "#bcc9cd",
+                        "primary-container": "#06b6d4",
+                        "secondary-fixed": "#bceaf7",
+                        "surface-tint": "#4cd7f6",
+                        "on-secondary-fixed-variant": "#1e4d58",
+                        "on-secondary": "#003640",
+                        "on-secondary-fixed": "#001f26",
+                        "on-error-container": "#ffdad6",
+                        "tertiary-fixed-dim": "#ffb873",
+                        "on-tertiary": "#4b2800",
+                        "on-primary-container": "#00424f",
+                        "tertiary-container": "#e89337",
+                        "inverse-surface": "#e5e1e4",
+                        "primary-fixed-dim": "#4cd7f6",
+                        "inverse-on-surface": "#313032",
+                        "tertiary-fixed": "#ffdcbf",
+                        "surface-bright": "#39393b",
+                        "surface-dim": "#131315",
+                        "on-background": "#e5e1e4",
+                        "on-secondary-container": "#90bcc9",
+                        "on-primary": "#003640",
+                        "inverse-primary": "#00687a",
+                        "error-container": "#93000a",
+                        "background": "#131315",
+                        "surface-container-high": "#2a2a2c",
+                        "outline": "#869397",
+                        "tertiary": "#ffb873",
+                        "surface-container": "#201f22"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Inter"],
+                        "label": ["Inter"],
+                        "mono": ["JetBrains Mono"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3 { font-family: 'Space Grotesk', sans-serif; }
+        .mono-text { font-family: 'JetBrains Mono', monospace; }
+        .radial-glow {
+            background: radial-gradient(circle at center, rgba(6, 182, 212, 0.15) 0%, rgba(9, 9, 11, 0) 70%);
+        }
+        .glass-panel {
+            background: rgba(24, 24, 27, 0.8);
+            backdrop-filter: blur(12px);
+        }
+        .primary-gradient {
+            background: linear-gradient(135deg, #06b6d4 0%, #00424f 100%);
+        }
+    </style>
+</head>
+<body class="bg-surface-container-lowest text-on-surface min-h-screen flex items-center justify-center overflow-hidden">
+<!-- Background Glow -->
+<div class="fixed inset-0 radial-glow pointer-events-none"></div>
+<!-- Top Navigation Anchor (As per JSON hierarchy) -->
+<header class="fixed top-0 w-full flex justify-between items-center px-6 h-16 bg-[#18181B] z-50">
+<div class="font-['Space_Grotesk'] tracking-wider text-xl font-bold text-cyan-500">Aetheris AI</div>
+<div class="flex items-center gap-4">
+<button class="text-zinc-500 hover:text-cyan-300 transition-colors active:scale-95 transition-transform">
+<span class="material-symbols-outlined">help</span>
+</button>
+<button class="text-zinc-500 hover:text-cyan-300 transition-colors active:scale-95 transition-transform">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+</header>
+<!-- Main Wizard Modal Container -->
+<main class="relative z-10 w-full max-w-[600px] mx-auto px-4">
+<div class="glass-panel border border-outline-variant/20 rounded-xl shadow-[0_20px_40px_rgba(0,0,0,0.4)] overflow-hidden">
+<!-- Modal Header -->
+<div class="p-8 pb-4">
+<h1 class="text-3xl font-bold tracking-tight text-[#FAFAFA] mb-1">Welcome to JARVIS</h1>
+<p class="text-on-surface-variant text-sm font-medium">Let's configure your agent in 3 quick steps.</p>
+</div>
+<!-- Progress Bar Section -->
+<div class="px-8 mb-10">
+<div class="flex justify-between items-end mb-2">
+<span class="text-[0.6875rem] uppercase tracking-[0.05em] font-medium text-primary">Step 3 of 3: Choose your Brain</span>
+<span class="mono-text text-[0.6875rem] text-outline">66% Complete</span>
+</div>
+<div class="flex gap-1 h-1.5 w-full">
+<div class="flex-1 bg-primary rounded-full"></div>
+<div class="flex-1 bg-primary rounded-full"></div>
+<div class="flex-1 bg-surface-container-highest rounded-full"></div>
+</div>
+</div>
+<!-- Step Content Area -->
+<div class="px-8 pb-10">
+<h2 class="text-xl font-bold text-[#FAFAFA] mb-8 leading-tight">How do you want JARVIS to process commands?</h2>
+<div class="grid grid-cols-2 gap-4">
+<!-- Card A: Cloud -->
+<div class="group cursor-pointer p-6 rounded-lg border border-outline-variant/20 bg-surface-container-low hover:bg-surface-container transition-all">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-surface-container-highest rounded-lg">
+<span class="material-symbols-outlined text-primary">cloud</span>
+</div>
+<div class="w-4 h-4 rounded-full border border-outline-variant/50"></div>
+</div>
+<h3 class="text-sm font-bold text-on-surface mb-2">Cloud (Fast &amp; Smart)</h3>
+<p class="text-xs text-on-surface-variant leading-relaxed">Uses Groq and OpenAI. Requires API keys. Best for older PCs.</p>
+</div>
+<!-- Card B: Local (Selected State) -->
+<div class="relative cursor-pointer p-6 rounded-lg border-2 border-primary bg-surface-container shadow-[0_0_20px_rgba(6,182,212,0.15)] transition-all">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-secondary-container rounded-lg">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">memory</span>
+</div>
+<div class="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[14px] text-on-primary font-bold">check</span>
+</div>
+</div>
+<h3 class="text-sm font-bold text-on-surface mb-2">Local (Private &amp; Free)</h3>
+<p class="text-xs text-on-surface-variant leading-relaxed">Uses Ollama. Runs 100% offline. Requires good GPU.</p>
+<!-- Pulse Indicator -->
+<div class="absolute -top-1 -right-1">
+<div class="relative flex h-3 w-3">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+</div>
+</div>
+</div>
+</div>
+<!-- Technical Specification (Minimalist Detail) -->
+<div class="mt-8 p-4 rounded bg-surface-container-low border-l-2 border-primary">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-sm text-outline">info</span>
+<p class="text-[0.6875rem] mono-text text-outline uppercase tracking-wider">System requirement: 8GB VRAM Recommended for Local Inference</p>
+</div>
+</div>
+</div>
+<!-- Footer Navigation -->
+<div class="bg-surface-container-high px-8 py-6 flex items-center justify-between">
+<button class="flex items-center gap-2 px-6 py-2.5 rounded-lg border border-outline-variant/30 text-on-surface text-sm font-semibold hover:bg-surface-variant transition-all active:scale-95">
+<span class="material-symbols-outlined text-[18px]">arrow_back</span>
+                    Back
+                </button>
+<button class="primary-gradient px-8 py-2.5 rounded-lg text-white text-sm font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all">
+                    Finish Setup
+                </button>
+</div>
+</div>
+<!-- Decorative "Pulse" Component (Visual Soul) -->
+<div class="mt-12 flex flex-col items-center gap-4 opacity-50">
+<div class="relative w-12 h-12 rounded-full glass-panel border border-primary/20 flex items-center justify-center overflow-hidden">
+<div class="absolute inset-0 bg-primary/5 animate-pulse"></div>
+<div class="w-6 h-6 rounded-full primary-gradient opacity-30 blur-md"></div>
+<span class="material-symbols-outlined text-primary text-xl" style="font-variation-settings: 'FILL' 1;">bolt</span>
+</div>
+<span class="mono-text text-[10px] text-outline uppercase tracking-[0.2em]">Neural Link Initializing</span>
+</div>
+</main>
+<!-- Visual Identity Background Element -->
+<div class="fixed bottom-0 left-0 w-full h-1/3 pointer-events-none opacity-20">
+<div class="w-full h-full bg-gradient-to-t from-primary/10 to-transparent"></div>
+</div>
+</body></html>

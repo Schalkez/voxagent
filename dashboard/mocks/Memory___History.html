@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>JARVIS | Memory &amp; History</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-container": "#201f22",
+                        "inverse-primary": "#00687a",
+                        "surface-dim": "#131315",
+                        "secondary-fixed": "#bceaf7",
+                        "on-tertiary": "#4b2800",
+                        "secondary-fixed-dim": "#a1cedb",
+                        "on-secondary-fixed-variant": "#1e4d58",
+                        "tertiary": "#ffb873",
+                        "surface-container-highest": "#353437",
+                        "on-primary": "#003640",
+                        "on-surface": "#e5e1e4",
+                        "outline-variant": "#3d494c",
+                        "tertiary-fixed-dim": "#ffb873",
+                        "surface-container-lowest": "#0e0e10",
+                        "on-tertiary-fixed": "#2d1600",
+                        "secondary-container": "#1e4d58",
+                        "on-error": "#690005",
+                        "inverse-surface": "#e5e1e4",
+                        "primary-container": "#06b6d4",
+                        "background": "#09090B",
+                        "on-primary-fixed": "#001f26",
+                        "on-primary-container": "#00424f",
+                        "on-tertiary-container": "#5b3200",
+                        "on-secondary": "#003640",
+                        "on-error-container": "#ffdad6",
+                        "surface": "#131315",
+                        "tertiary-fixed": "#ffdcbf",
+                        "on-secondary-fixed": "#001f26",
+                        "error": "#ffb4ab",
+                        "secondary": "#a1cedb",
+                        "on-surface-variant": "#bcc9cd",
+                        "tertiary-container": "#e89337",
+                        "inverse-on-surface": "#313032",
+                        "on-background": "#e5e1e4",
+                        "primary-fixed-dim": "#4cd7f6",
+                        "on-secondary-container": "#90bcc9",
+                        "on-tertiary-fixed-variant": "#6a3b00",
+                        "surface-tint": "#4cd7f6",
+                        "on-primary-fixed-variant": "#004e5c",
+                        "surface-variant": "#353437",
+                        "surface-container-high": "#2a2a2c",
+                        "primary": "#4cd7f6",
+                        "outline": "#869397",
+                        "surface-bright": "#39393b",
+                        "surface-container-low": "#18181B",
+                        "primary-fixed": "#acedff",
+                        "error-container": "#93000a"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    fontFamily: {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Inter"],
+                        "label": ["Inter"],
+                        "mono": ["JetBrains Mono"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .pulse-glow {
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body selection:bg-primary/30">
+<!-- SideNavBar Anchor -->
+<aside class="fixed left-0 top-0 h-screen w-[260px] bg-zinc-950 flex flex-col py-6 border-r border-zinc-900/50 z-50">
+<div class="px-6 mb-10 flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-zinc-900 flex items-center justify-center pulse-glow border border-cyan-500/30">
+<div class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></div>
+</div>
+<div>
+<h1 class="text-xl font-bold tracking-tighter text-white uppercase font-headline">JARVIS</h1>
+<p class="text-[10px] uppercase tracking-widest text-cyan-500 font-medium">Online</p>
+</div>
+</div>
+<nav class="flex-1 space-y-1 px-3">
+<a class="flex items-center gap-3 px-3 py-2 text-zinc-500 hover:text-zinc-300 transition-colors duration-200 group" href="#">
+<span class="material-symbols-outlined text-[20px]">dashboard</span>
+<span class="font-headline tracking-tight">Overview</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-zinc-500 hover:text-zinc-300 transition-colors duration-200 group" href="#">
+<span class="material-symbols-outlined text-[20px]">hub</span>
+<span class="font-headline tracking-tight">Providers</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-zinc-500 hover:text-zinc-300 transition-colors duration-200 group" href="#">
+<span class="material-symbols-outlined text-[20px]">alt_route</span>
+<span class="font-headline tracking-tight">Routing</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-zinc-500 hover:text-zinc-300 transition-colors duration-200 group" href="#">
+<span class="material-symbols-outlined text-[20px]">extension</span>
+<span class="font-headline tracking-tight">Skills</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-cyan-400 font-bold border-r-2 border-cyan-500 bg-zinc-900/50 group" href="#">
+<span class="material-symbols-outlined text-[20px]">memory</span>
+<span class="font-headline tracking-tight">Memory</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-zinc-500 hover:text-zinc-300 transition-colors duration-200 group" href="#">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+<span class="font-headline tracking-tight">Settings</span>
+</a>
+</nav>
+<div class="px-6 mt-auto">
+<div class="p-4 rounded-xl bg-zinc-900/50 border border-zinc-800/50">
+<p class="text-[10px] text-zinc-500 uppercase tracking-widest mb-2">System Load</p>
+<div class="h-1 w-full bg-zinc-800 rounded-full overflow-hidden">
+<div class="h-full bg-cyan-500 w-[24%]"></div>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content Wrapper -->
+<main class="ml-[260px] min-h-screen flex flex-col">
+<!-- TopAppBar Anchor -->
+<header class="fixed top-0 right-0 left-[260px] h-16 bg-zinc-950/70 backdrop-blur-xl flex items-center justify-between px-8 w-full z-40 border-b border-zinc-800/20">
+<div class="flex items-center gap-2 font-['Inter'] text-sm">
+<span class="text-zinc-500">JARVIS</span>
+<span class="text-zinc-700">/</span>
+<span class="text-white font-medium">Memory</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-zinc-500 hover:text-cyan-400 transition-all duration-300">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-zinc-500 hover:text-cyan-400 transition-all duration-300">
+<span class="material-symbols-outlined">account_circle</span>
+</button>
+</div>
+</header>
+<!-- Content Area -->
+<section class="mt-16 p-8 flex-1 flex flex-col max-w-6xl w-full mx-auto">
+<!-- Page Title -->
+<div class="mb-8">
+<h2 class="text-3xl font-bold font-headline tracking-tight text-white">Conversation Memory &amp; Preferences</h2>
+<p class="text-on-surface-variant text-sm mt-1">Manage the persistent context and cognitive history of your AI agent.</p>
+</div>
+<!-- Warning Banner -->
+<div class="bg-surface-container-low border border-primary-container p-5 rounded-xl mb-8 flex items-start gap-4">
+<span class="material-symbols-outlined text-primary-container">shield_lock</span>
+<p class="text-sm text-on-surface leading-relaxed">
+                    All memory is stored locally and encrypted using SQLCipher. JARVIS uses this context to understand multi-step commands and maintain long-term relationship state without cloud dependencies.
+                </p>
+</div>
+<!-- Horizontal Tabs -->
+<div class="flex items-center gap-8 mb-8 border-b border-zinc-800/50">
+<button class="pb-4 text-sm font-medium text-cyan-400 border-b-2 border-cyan-400 px-1">
+                    Recent Conversations
+                </button>
+<button class="pb-4 text-sm font-medium text-zinc-500 hover:text-zinc-300 transition-colors px-1">
+                    Learned Preferences
+                </button>
+</div>
+<!-- Log Content -->
+<div class="space-y-4 flex-1">
+<!-- Interaction Block 1 -->
+<div class="bg-surface-container-low p-6 rounded-xl group hover:bg-zinc-900 transition-colors duration-300">
+<div class="flex items-start justify-between mb-2">
+<span class="font-mono text-[11px] text-zinc-500 bg-zinc-900 px-2 py-1 rounded">[10:45 AM]</span>
+<span class="font-mono text-[10px] text-cyan-500/80 tracking-tight uppercase px-2 py-1 bg-cyan-500/5 rounded border border-cyan-500/10">Tier 2 Routing -&gt; BrowserControlSkill</span>
+</div>
+<div class="space-y-3">
+<p class="text-white font-semibold text-base leading-snug">
+                            "Jarvis, mở Chrome, vào gmail, đọc email mới nhất"
+                        </p>
+<div class="flex items-start gap-3 mt-4 pt-4 border-t border-zinc-800/30">
+<span class="material-symbols-outlined text-cyan-500 text-lg">auto_awesome</span>
+<p class="text-primary-container font-medium">
+                                Đã mở Gmail và tóm tắt email mới nhất cho bạn.
+                            </p>
+</div>
+</div>
+</div>
+<!-- Interaction Block 2 -->
+<div class="bg-surface-container-low p-6 rounded-xl group hover:bg-zinc-900 transition-colors duration-300">
+<div class="flex items-start justify-between mb-2">
+<span class="font-mono text-[11px] text-zinc-500 bg-zinc-900 px-2 py-1 rounded">[10:42 AM]</span>
+<span class="font-mono text-[10px] text-zinc-500 tracking-tight uppercase px-2 py-1 bg-zinc-900 rounded border border-zinc-800/50">Tier 1 Core -&gt; SystemControlSkill</span>
+</div>
+<div class="space-y-3">
+<p class="text-white font-semibold text-base leading-snug">
+                            "Set system volume to 40% and enable dark mode"
+                        </p>
+<div class="flex items-start gap-3 mt-4 pt-4 border-t border-zinc-800/30">
+<span class="material-symbols-outlined text-cyan-500 text-lg">auto_awesome</span>
+<p class="text-primary-container font-medium">
+                                System parameters updated. Audio set to 40%, UI transition complete.
+                            </p>
+</div>
+</div>
+</div>
+<!-- Interaction Block 3 (History Segment) -->
+<div class="bg-surface-container-low p-6 rounded-xl group hover:bg-zinc-900 transition-colors duration-300">
+<div class="flex items-start justify-between mb-2">
+<span class="font-mono text-[11px] text-zinc-500 bg-zinc-900 px-2 py-1 rounded">[09:15 AM]</span>
+<span class="font-mono text-[10px] text-cyan-500/80 tracking-tight uppercase px-2 py-1 bg-cyan-500/5 rounded border border-cyan-500/10">Tier 3 Creative -&gt; MultiModalNexus</span>
+</div>
+<div class="space-y-3">
+<p class="text-white font-semibold text-base leading-snug">
+                            "Generate a summary of the project proposal from the desktop folder"
+                        </p>
+<div class="flex items-start gap-3 mt-4 pt-4 border-t border-zinc-800/30">
+<span class="material-symbols-outlined text-cyan-500 text-lg">auto_awesome</span>
+<p class="text-primary-container font-medium">
+                                Found 'Project_Nebula.pdf'. Analysis complete: 3 key takeaways identified.
+                            </p>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Actions -->
+<div class="mt-12 pt-8 border-t border-zinc-900">
+<button class="w-full py-4 border border-zinc-800 text-zinc-400 font-medium rounded-xl hover:bg-red-500 hover:text-white hover:border-red-500 transition-all duration-300 flex items-center justify-center gap-2 group">
+<span class="material-symbols-outlined text-xl transition-transform group-hover:scale-110">delete_sweep</span>
+                    Clear All Session Memory
+                </button>
+<p class="text-center text-[10px] text-zinc-600 uppercase tracking-widest mt-4 font-mono">
+                    Warning: This action is irreversible and resets agent contextual understanding.
+                </p>
+</div>
+</section>
+<!-- Right Side Intelligence Panel (Extra/Bento style) -->
+<aside class="fixed top-20 right-8 w-72 hidden xl:block space-y-6">
+<div class="bg-zinc-900/40 p-5 rounded-xl border border-zinc-800/30 backdrop-blur-sm">
+<h4 class="text-[10px] uppercase tracking-widest text-zinc-500 mb-4 font-bold">Memory Statistics</h4>
+<div class="space-y-4">
+<div>
+<div class="flex justify-between text-xs mb-1">
+<span class="text-zinc-400">Context Tokens</span>
+<span class="text-cyan-400 font-mono">14,203 / 32k</span>
+</div>
+<div class="h-1 bg-zinc-800 rounded-full">
+<div class="h-full bg-cyan-500/50 w-[44%]"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-xs mb-1">
+<span class="text-zinc-400">Database Size</span>
+<span class="text-cyan-400 font-mono">42.8 MB</span>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-zinc-900/40 p-5 rounded-xl border border-zinc-800/30 backdrop-blur-sm">
+<h4 class="text-[10px] uppercase tracking-widest text-zinc-500 mb-4 font-bold">Privacy Metadata</h4>
+<ul class="text-xs space-y-3">
+<li class="flex items-center gap-2 text-zinc-400">
+<span class="material-symbols-outlined text-sm text-cyan-500">lock</span>
+                        AES-256 Enabled
+                    </li>
+<li class="flex items-center gap-2 text-zinc-400">
+<span class="material-symbols-outlined text-sm text-cyan-500">sync_disabled</span>
+                        Zero Cloud Sync
+                    </li>
+<li class="flex items-center gap-2 text-zinc-400">
+<span class="material-symbols-outlined text-sm text-cyan-500">history</span>
+                        90 Day Retention
+                    </li>
+</ul>
+</div>
+</aside>
+</main>
+</body></html>

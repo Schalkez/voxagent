@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "error-container": "#93000a",
+                        "surface-bright": "#39393b",
+                        "surface-container-low": "#1c1b1d",
+                        "tertiary-fixed": "#ffdcbf",
+                        "surface-container-highest": "#353437",
+                        "secondary-fixed": "#bceaf7",
+                        "primary-fixed": "#acedff",
+                        "surface-dim": "#131315",
+                        "on-tertiary-fixed": "#2d1600",
+                        "tertiary-fixed-dim": "#ffb873",
+                        "tertiary-container": "#e89337",
+                        "secondary": "#a1cedb",
+                        "on-secondary": "#003640",
+                        "surface-tint": "#4cd7f6",
+                        "inverse-surface": "#e5e1e4",
+                        "primary-container": "#06b6d4",
+                        "secondary-fixed-dim": "#a1cedb",
+                        "on-primary-fixed": "#001f26",
+                        "surface-container-high": "#2a2a2c",
+                        "secondary-container": "#1e4d58",
+                        "on-tertiary-fixed-variant": "#6a3b00",
+                        "on-primary-fixed-variant": "#004e5c",
+                        "on-background": "#e5e1e4",
+                        "surface-variant": "#353437",
+                        "error": "#ffb4ab",
+                        "on-tertiary-container": "#5b3200",
+                        "on-secondary-fixed-variant": "#1e4d58",
+                        "outline": "#869397",
+                        "surface": "#131315",
+                        "on-secondary-fixed": "#001f26",
+                        "surface-container": "#201f22",
+                        "on-surface-variant": "#bcc9cd",
+                        "on-primary": "#003640",
+                        "outline-variant": "#3d494c",
+                        "inverse-on-surface": "#313032",
+                        "on-secondary-container": "#90bcc9",
+                        "on-error-container": "#ffdad6",
+                        "inverse-primary": "#00687a",
+                        "background": "#131315",
+                        "on-primary-container": "#00424f",
+                        "on-error": "#690005",
+                        "primary": "#4cd7f6",
+                        "tertiary": "#ffb873",
+                        "primary-fixed-dim": "#4cd7f6",
+                        "on-tertiary": "#4b2800",
+                        "on-surface": "#e5e1e4",
+                        "surface-container-lowest": "#0e0e10"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Inter"],
+                        "label": ["Inter"],
+                        "mono": ["JetBrains Mono"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #09090b; /* The Void */
+            color: #e5e1e4;
+            font-family: 'Inter', sans-serif;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #09090b;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #27272a;
+        }
+    </style>
+</head>
+<body class="bg-surface-container-lowest min-h-screen selection:bg-primary/30">
+<!-- SideNavBar Shell -->
+<aside class="h-screen w-[260px] fixed left-0 top-0 bg-zinc-950 flex flex-col py-8 px-4 z-50 border-r border-zinc-800/20">
+<!-- Brand Header -->
+<div class="flex items-center gap-3 mb-10 px-2">
+<div class="relative flex items-center justify-center">
+<div class="w-8 h-8 rounded-full bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
+<span class="material-symbols-outlined text-cyan-500 text-lg" data-icon="hub">hub</span>
+</div>
+<!-- Tonal Pulse Module -->
+<div class="absolute inset-0 w-8 h-8 rounded-full bg-cyan-500/20 animate-ping opacity-25"></div>
+</div>
+<div>
+<h1 class="text-2xl font-bold tracking-tighter text-white font-headline">JARVIS</h1>
+<p class="font-['Space_Grotesk'] text-[0.6rem] tracking-[0.2em] text-cyan-500 leading-none">ONLINE</p>
+</div>
+</div>
+<!-- Nav Navigation -->
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900/50 transition-colors duration-200 group" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="dashboard">dashboard</span>
+<span class="font-['Space_Grotesk'] text-sm tracking-wide">Overview</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900/50 transition-colors duration-200 group" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="hub">hub</span>
+<span class="font-['Space_Grotesk'] text-sm tracking-wide">Providers</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900/50 transition-colors duration-200 group" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="alt_route">alt_route</span>
+<span class="font-['Space_Grotesk'] text-sm tracking-wide">Routing</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-cyan-400 font-bold border-r-2 border-cyan-500 bg-cyan-500/5 transition-colors duration-200 group" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="extension">extension</span>
+<span class="font-['Space_Grotesk'] text-sm tracking-wide">Skills</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900/50 transition-colors duration-200 group" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="settings">settings</span>
+<span class="font-['Space_Grotesk'] text-sm tracking-wide">Settings</span>
+</a>
+</nav>
+<!-- Footer Avatar -->
+<div class="mt-auto pt-6 border-t border-zinc-900/50 flex items-center gap-3 px-2">
+<img alt="AI Pulse Indicator" class="w-8 h-8 rounded-full border border-cyan-500/30" data-alt="abstract geometric shape icon in cyan representing an artificial intelligence presence" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBHORM403X-rIONvA8uMY-xP17bAPmyryX3tvmTXCwfg1zNt0L2SgFYb54DDd1rWQaafjjHDEEiw-OzF_7gGvEmXQ-6dUUbvJPOwFF5lO1B9qzyF0FLTspYI5AOUDnNbm_SBoJ4xZkZVM05YgHY1Cwl7_vjR-2K21cZ_u0Wxf-RhlGKopmZUe0smMuaJSwBsn0UeGF7s0khQtGfUGIoISYidKbnd82YO-gJHbGUrexxYrofY1o3yHbUdK8lOfxwct7ZBN3-rbnshxM"/>
+<div class="flex flex-col">
+<span class="text-xs font-mono text-zinc-400">SESSION_ID</span>
+<span class="text-[10px] font-mono text-cyan-500/70 uppercase">0x4F92...E10B</span>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="ml-[260px] min-h-screen flex flex-col">
+<!-- TopAppBar -->
+<header class="h-16 w-full sticky top-0 bg-transparent backdrop-blur-xl border-b border-zinc-800/20 z-40 flex items-center justify-between px-8">
+<div class="flex items-center gap-2">
+<nav class="flex items-center text-[0.6875rem] font-['Space_Grotesk'] uppercase tracking-[0.05em]">
+<span class="text-zinc-500">JARVIS</span>
+<span class="mx-2 text-zinc-700">/</span>
+<span class="text-white">Skills</span>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-zinc-500 hover:text-cyan-400 transition-colors duration-200">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="text-zinc-500 hover:text-cyan-400 transition-colors duration-200">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+</button>
+</div>
+</header>
+<!-- Content Canvas -->
+<section class="p-8 flex-1">
+<!-- Control Bar -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+<div class="flex-1 max-w-xl relative group">
+<span class="material-symbols-outlined absolute left-0 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-cyan-500 transition-colors" data-icon="search">search</span>
+<input class="w-full bg-transparent border-0 border-b border-zinc-800 py-3 pl-8 pr-4 text-sm focus:ring-0 focus:border-cyan-500 transition-all placeholder:text-zinc-600 font-body" placeholder="Search skills, capabilities, or permissions..." type="text"/>
+</div>
+<div class="flex items-center gap-3">
+<div class="relative">
+<select class="appearance-none bg-surface-container-low border border-outline-variant/20 rounded-lg px-4 py-2 pr-10 text-xs font-label text-zinc-300 focus:ring-1 focus:ring-primary/50 focus:border-primary outline-none">
+<option>All Categories</option>
+<option>System</option>
+<option>Media</option>
+<option>Browser</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none text-sm" data-icon="expand_more">expand_more</span>
+</div>
+<button class="flex items-center gap-2 px-4 py-2 rounded-lg border border-outline-variant/20 bg-zinc-900/50 text-xs font-label text-white hover:bg-zinc-800 transition-colors group">
+<span class="material-symbols-outlined text-sm group-active:rotate-180 transition-transform duration-500" data-icon="refresh">refresh</span>
+                        Reload Skills
+                    </button>
+</div>
+</div>
+<!-- Skills Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+<!-- Card 1 -->
+<div class="bg-[#18181B] border border-[#27272A] rounded-xl overflow-hidden flex flex-col group hover:border-cyan-500/30 transition-all duration-300">
+<div class="p-6 flex flex-col h-full">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-cyan-500/10 rounded-lg">
+<span class="material-symbols-outlined text-cyan-500" data-icon="ads_click">ads_click</span>
+</div>
+<!-- Active Toggle -->
+<div class="w-10 h-5 bg-cyan-500/20 rounded-full relative cursor-pointer border border-cyan-500/30">
+<div class="absolute right-0.5 top-0.5 w-4 h-4 bg-cyan-500 rounded-full shadow-[0_0_8px_rgba(6,182,212,0.6)]"></div>
+</div>
+</div>
+<h3 class="text-white font-headline font-semibold text-lg mb-1 group-hover:text-cyan-400 transition-colors">YouTube Ad Skipper</h3>
+<p class="text-zinc-500 text-xs font-mono mb-4 uppercase tracking-tighter">v1.0.0 • by minhtq</p>
+<p class="text-zinc-400 text-sm font-body leading-relaxed mb-6">Automatically skips YouTube ads using browser control.</p>
+<div class="mt-auto space-y-3">
+<div class="bg-zinc-950 p-4 rounded-lg">
+<span class="text-[10px] font-label uppercase tracking-widest text-zinc-500 block mb-2">Requires:</span>
+<div class="flex flex-wrap gap-2">
+<span class="bg-zinc-900 text-zinc-300 px-2 py-1 rounded text-[10px] font-mono border border-zinc-800">browser:control</span>
+<span class="bg-tertiary-container/10 text-tertiary px-2 py-1 rounded text-[10px] font-mono border border-tertiary/20">screen:read</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-[#18181B] border border-[#27272A] rounded-xl overflow-hidden flex flex-col group hover:border-zinc-700 transition-all duration-300">
+<div class="p-6 flex flex-col h-full">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-zinc-800 rounded-lg">
+<span class="material-symbols-outlined text-zinc-400" data-icon="terminal">terminal</span>
+</div>
+<!-- Inactive Toggle -->
+<div class="w-10 h-5 bg-zinc-800 rounded-full relative cursor-pointer">
+<div class="absolute left-0.5 top-0.5 w-4 h-4 bg-zinc-600 rounded-full"></div>
+</div>
+</div>
+<h3 class="text-white font-headline font-semibold text-lg mb-1">Terminal Control</h3>
+<p class="text-zinc-500 text-xs font-mono mb-4 uppercase tracking-tighter">v0.9.4 • by jarvis_core</p>
+<p class="text-zinc-400 text-sm font-body leading-relaxed mb-6">Execute terminal commands and manage system processes safely.</p>
+<div class="mt-auto space-y-3">
+<div class="bg-zinc-950 p-4 rounded-lg">
+<span class="text-[10px] font-label uppercase tracking-widest text-zinc-500 block mb-2">Requires:</span>
+<div class="flex flex-wrap gap-2">
+<span class="bg-error-container/10 text-error px-2 py-1 rounded text-[10px] font-mono border border-error/20">terminal:write</span>
+<span class="bg-zinc-900 text-zinc-300 px-2 py-1 rounded text-[10px] font-mono border border-zinc-800">system:info</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="bg-[#18181B] border border-[#27272A] rounded-xl overflow-hidden flex flex-col group hover:border-cyan-500/30 transition-all duration-300">
+<div class="p-6 flex flex-col h-full">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-cyan-500/10 rounded-lg">
+<span class="material-symbols-outlined text-cyan-500" data-icon="music_note">music_note</span>
+</div>
+<!-- Active Toggle -->
+<div class="w-10 h-5 bg-cyan-500/20 rounded-full relative cursor-pointer border border-cyan-500/30">
+<div class="absolute right-0.5 top-0.5 w-4 h-4 bg-cyan-500 rounded-full shadow-[0_0_8px_rgba(6,182,212,0.6)]"></div>
+</div>
+</div>
+<h3 class="text-white font-headline font-semibold text-lg mb-1 group-hover:text-cyan-400 transition-colors">Spotify Controller</h3>
+<p class="text-zinc-500 text-xs font-mono mb-4 uppercase tracking-tighter">v2.1.0 • by audio_team</p>
+<p class="text-zinc-400 text-sm font-body leading-relaxed mb-6">Seamless playback control and playlist management for Spotify.</p>
+<div class="mt-auto space-y-3">
+<div class="bg-zinc-950 p-4 rounded-lg">
+<span class="text-[10px] font-label uppercase tracking-widest text-zinc-500 block mb-2">Requires:</span>
+<div class="flex flex-wrap gap-2">
+<span class="bg-zinc-900 text-zinc-300 px-2 py-1 rounded text-[10px] font-mono border border-zinc-800">media:control</span>
+<span class="bg-zinc-900 text-zinc-300 px-2 py-1 rounded text-[10px] font-mono border border-zinc-800">account:read</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Card 4 -->
+<div class="bg-[#18181B] border border-[#27272A] rounded-xl overflow-hidden flex flex-col group hover:border-cyan-500/30 transition-all duration-300">
+<div class="p-6 flex flex-col h-full">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-cyan-500/10 rounded-lg">
+<span class="material-symbols-outlined text-cyan-500" data-icon="robot_2">robot_2</span>
+</div>
+<!-- Active Toggle -->
+<div class="w-10 h-5 bg-cyan-500/20 rounded-full relative cursor-pointer border border-cyan-500/30">
+<div class="absolute right-0.5 top-0.5 w-4 h-4 bg-cyan-500 rounded-full shadow-[0_0_8px_rgba(6,182,212,0.6)]"></div>
+</div>
+</div>
+<h3 class="text-white font-headline font-semibold text-lg mb-1 group-hover:text-cyan-400 transition-colors">Browser Automation</h3>
+<p class="text-zinc-500 text-xs font-mono mb-4 uppercase tracking-tighter">v1.2.3 • by web_bot</p>
+<p class="text-zinc-400 text-sm font-body leading-relaxed mb-6">Automate repetitive web tasks and data scraping.</p>
+<div class="mt-auto space-y-3">
+<div class="bg-zinc-950 p-4 rounded-lg">
+<span class="text-[10px] font-label uppercase tracking-widest text-zinc-500 block mb-2">Requires:</span>
+<div class="flex flex-wrap gap-2">
+<span class="bg-zinc-900 text-zinc-300 px-2 py-1 rounded text-[10px] font-mono border border-zinc-800">browser:control</span>
+<span class="bg-tertiary-container/10 text-tertiary px-2 py-1 rounded text-[10px] font-mono border border-tertiary/20">network:access</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Card 5 -->
+<div class="bg-[#18181B] border border-[#27272A] rounded-xl overflow-hidden flex flex-col group hover:border-cyan-500/30 transition-all duration-300">
+<div class="p-6 flex flex-col h-full">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-cyan-500/10 rounded-lg">
+<span class="material-symbols-outlined text-cyan-500" data-icon="keyboard_voice">keyboard_voice</span>
+</div>
+<!-- Active Toggle -->
+<div class="w-10 h-5 bg-cyan-500/20 rounded-full relative cursor-pointer border border-cyan-500/30">
+<div class="absolute right-0.5 top-0.5 w-4 h-4 bg-cyan-500 rounded-full shadow-[0_0_8px_rgba(6,182,212,0.6)]"></div>
+</div>
+</div>
+<h3 class="text-white font-headline font-semibold text-lg mb-1 group-hover:text-cyan-400 transition-colors">Voice Recognition</h3>
+<p class="text-zinc-500 text-xs font-mono mb-4 uppercase tracking-tighter">v3.0.1 • by ai_labs</p>
+<p class="text-zinc-400 text-sm font-body leading-relaxed mb-6">Advanced voice-to-text processing for voice commands.</p>
+<div class="mt-auto space-y-3">
+<div class="bg-zinc-950 p-4 rounded-lg">
+<span class="text-[10px] font-label uppercase tracking-widest text-zinc-500 block mb-2">Requires:</span>
+<div class="flex flex-wrap gap-2">
+<span class="bg-error-container/10 text-error px-2 py-1 rounded text-[10px] font-mono border border-error/20">audio:record</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Empty "New Skill" Card -->
+<div class="bg-zinc-950 border border-zinc-800/50 border-dashed rounded-xl flex flex-col items-center justify-center p-8 group hover:bg-zinc-900/30 transition-all cursor-pointer">
+<div class="w-12 h-12 rounded-full border border-zinc-800 flex items-center justify-center text-zinc-600 group-hover:text-cyan-500 group-hover:border-cyan-500/50 transition-all">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+</div>
+<span class="mt-4 text-zinc-500 font-label text-xs uppercase tracking-widest">Install New Plugin</span>
+</div>
+</div>
+</section>
+<!-- Global Stats Footer (Asymmetric Layout element) -->
+<footer class="mt-auto p-8 border-t border-zinc-800/20 bg-zinc-950/30">
+<div class="flex flex-col md:flex-row gap-8 items-start md:items-center justify-between">
+<div class="flex gap-12">
+<div>
+<p class="text-[10px] font-label uppercase text-zinc-600 mb-1">Total Active Skills</p>
+<p class="text-2xl font-mono font-medium text-white">04</p>
+</div>
+<div>
+<p class="text-[10px] font-label uppercase text-zinc-600 mb-1">System Health</p>
+<p class="text-2xl font-mono font-medium text-cyan-500">99.8%</p>
+</div>
+<div>
+<p class="text-[10px] font-label uppercase text-zinc-600 mb-1">Last Update</p>
+<p class="text-sm font-mono text-zinc-400 mt-2">2023-10-24 14:32:01</p>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<span class="text-[10px] font-label uppercase text-zinc-600">Local Environment: <span class="text-zinc-400">Node-24-Alpha</span></span>
+<div class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></div>
+</div>
+</div>
+</footer>
+</main>
+</body></html>

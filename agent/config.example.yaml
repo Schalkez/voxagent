@@ -1,0 +1,37 @@
+# VoxAgent Configuration
+# Copy to ~/.voxagent/config.yaml and fill in your values
+
+providers:
+  groq:
+    model: "llama-3.1-8b-instant"
+    # API key stored in OS keyring: voxagent.setup stores it automatically
+  ollama:
+    base_url: "http://localhost:11434"
+    model: "llama3.1:8b"
+
+routing:
+  tier_0: { type: "keyword" }
+  tier_1: { provider: "groq", model: "llama-3.1-8b-instant" }
+  tier_2: { provider: "ollama", model: "llama3.1:8b" }
+  tier_3: { provider: "anthropic", model: "claude-sonnet-4-20250514" }
+
+  fallback_chain: ["ollama", "groq", "openai"]
+
+stt:
+  provider: "local"
+  model: "whisper-base"
+  language: "vi"
+
+tts:
+  provider: "piper"
+  voice: "vi-female"
+  speed: 1.0
+
+wake_word:
+  engine: "openwakeword"
+  phrase: "hey vox"
+  sensitivity: 0.7
+
+security:
+  confirm_dangerous_actions: true
+  max_file_delete_without_confirm: 0

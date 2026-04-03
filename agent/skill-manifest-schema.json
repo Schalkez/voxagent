@@ -1,0 +1,207 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://voxagent-project.ai/schemas/skill-manifest/v1",
+  "title": "VoxAgent Skill Manifest",
+  "description": "Schema for voxagent skill.json manifest files",
+  "type": "object",
+  "required": ["name", "version", "description", "author", "license", "min_voxagent_version", "os_support", "permissions"],
+  "additionalProperties": false,
+  "properties": {
+
+    "name": {
+      "type": "string",
+      "description": "Unique skill identifier. snake_case only.",
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "minLength": 3,
+      "maxLength": 50,
+      "examples": ["youtube_ad_skipper", "gmail_reader"]
+    },
+
+    "version": {
+      "type": "string",
+      "description": "Semantic version string.",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9.]+)?$",
+      "examples": ["1.0.0", "0.2.1-beta"]
+    },
+
+    "display_name": {
+      "type": "string",
+      "description": "Human-readable name shown in marketplace and UI.",
+      "maxLength": 80,
+      "examples": ["YouTube Ad Skipper"]
+    },
+
+    "description": {
+      "type": "string",
+      "description": "Short description for marketplace listing (1–3 sentences).",
+      "maxLength": 500,
+      "examples": ["Automatically skips YouTube ads on voice command."]
+    },
+
+    "author": {
+      "type": "string",
+      "description": "Author name or GitHub username.",
+      "examples": ["YourName", "github:yourusername"]
+    },
+
+    "homepage": {
+      "type": "string",
+      "format": "uri",
+      "description": "Link to skill's GitHub repo or documentation."
+    },
+
+    "license": {
+      "type": "string",
+      "description": "SPDX license identifier. Must be OSI-approved for marketplace.",
+      "enum": [
+        "Apache-2.0",
+        "MIT",
+        "GPL-3.0",
+        "LGPL-3.0",
+        "BSD-2-Clause",
+        "BSD-3-Clause",
+        "MPL-2.0"
+      ]
+    },
+
+    "min_voxagent_version": {
+      "type": "string",
+      "description": "Minimum VoxAgent version required.",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "examples": ["0.1.0"]
+    },
+
+    "max_voxagent_version": {
+      "type": "string",
+      "description": "Maximum VoxAgent version supported (optional).",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+
+    "os_support": {
+      "type": "array",
+      "description": "List of supported operating systems.",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "enum": ["windows", "macos", "linux"]
+      },
+      "examples": [["windows", "macos", "linux"], ["windows"]]
+    },
+
+    "permissions": {
+      "type": "array",
+      "description": "List of permissions the skill requires. Request only what you need.",
+      "items": {
+        "type": "string",
+        "enum": [
+          "filesystem:read",
+          "filesystem:write",
+          "process:list",
+          "process:launch",
+          "process:kill",
+          "browser:control",
+          "browser:history",
+          "network:request",
+          "system:volume",
+          "system:display",
+          "system:power",
+          "screen:read",
+          "clipboard:read",
+          "clipboard:write",
+          "microphone:listen",
+          "notifications:read"
+        ]
+      },
+      "uniqueItems": true,
+      "examples": [
+        ["screen:read", "browser:control"],
+        ["filesystem:read", "filesystem:write"]
+      ]
+    },
+
+    "keywords": {
+      "type": "array",
+      "description": "Tier 0 trigger keywords (Vietnamese and/or English).",
+      "items": {
+        "type": "string",
+        "maxLength": 50
+      },
+      "maxItems": 20,
+      "examples": [["skip", "bỏ quảng cáo", "skip ad"]]
+    },
+
+    "dependencies": {
+      "type": "object",
+      "description": "Runtime dependencies.",
+      "additionalProperties": false,
+      "properties": {
+        "python": {
+          "type": "array",
+          "description": "Python packages (pip format).",
+          "items": { "type": "string" },
+          "examples": [["requests>=2.28.0", "beautifulsoup4"]]
+        },
+        "system": {
+          "type": "array",
+          "description": "System-level dependencies.",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "name": { "type": "string" },
+              "os": {
+                "type": "string",
+                "enum": ["windows", "macos", "linux"]
+              },
+              "install_hint": { "type": "string" }
+            }
+          },
+          "examples": [[{"name": "tesseract", "os": "linux", "install_hint": "sudo apt install tesseract-ocr"}]]
+        }
+      }
+    },
+
+    "config_schema": {
+      "type": "object",
+      "description": "JSON Schema for skill-specific user configuration (optional).",
+      "examples": [
+        {
+          "properties": {
+            "auto_skip_threshold_ms": {
+              "type": "integer",
+              "default": 5000,
+              "description": "How long to wait before auto-skipping (ms)"
+            }
+          }
+        }
+      ]
+    },
+
+    "changelog": {
+      "type": "array",
+      "description": "Version history.",
+      "items": {
+        "type": "object",
+        "required": ["version", "date", "changes"],
+        "properties": {
+          "version": { "type": "string" },
+          "date": { "type": "string", "format": "date" },
+          "changes": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      },
+      "examples": [
+        [
+          {
+            "version": "1.0.0",
+            "date": "2025-04-01",
+            "changes": ["Initial release", "Support Windows and macOS"]
+          }
+        ]
+      ]
+    }
+
+  }
+}

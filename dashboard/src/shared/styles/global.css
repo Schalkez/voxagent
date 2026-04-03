@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+@theme {
+  /* Fonts */
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-sans: "Space Grotesk", system-ui, sans-serif;
+
+  /* Base Semantic Colors */
+  --color-primary: #aec6ff;
+  --color-primary-container: #0070f3;
+  --color-secondary: #3aff87;
+  --color-secondary-fixed-dim: #00e472;
+  --color-error: #ffb4ab;
+  --color-error-container: #93000a;
+
+  /* Surfaces & Hierarchy */
+  --color-surface-lowest: #0e0e0e;
+  --color-surface-base: #131313;
+  --color-surface-low: #1c1b1b;
+  --color-surface-high: #2a2a2a;
+  --color-surface-highest: #353534;
+
+  /* Borders */
+  --color-outline-variant: rgba(65, 71, 84, 0.15);
+
+  /* Foreground Text */
+  --color-text-on-surface: #e5e2e1;
+  --color-text-on-surface-variant: #c1c6d7;
+  --color-text-on-primary-container: #ffffff;
+
+  /* Ambient Glows */
+  --shadow-glow-primary: 0 0 48px 4px rgba(174, 198, 255, 0.04);
+}
+
+/* Global Background Setup */
+@layer base {
+  body {
+    @apply bg-surface-lowest text-text-on-surface font-sans antialiased selection:bg-primary-container selection:text-white;
+  }
+}

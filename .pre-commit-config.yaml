@@ -1,0 +1,56 @@
+repos:
+  # ── General checks ──
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: no-commit-to-branch
+        args: ['--branch', 'main']
+
+  # ── Python lint + format ──
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.6
+    hooks:
+      - id: ruff
+        args: [--fix, --config=agent/pyproject.toml]
+      - id: ruff-format
+        args: [--config=agent/pyproject.toml]
+
+  # ── Type checking ──
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.13.0
+    hooks:
+      - id: mypy
+        additional_dependencies: [pydantic>=2.9]
+        args: [--config-file=agent/pyproject.toml]
+        exclude: ^(agent/tests/|docs/|dashboard/|.*\.tsx|.*\.ts)
+
+  # ── Security scan ──
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.8.3
+    hooks:
+      - id: bandit
+        args: ["-c", "agent/pyproject.toml", "-r"]
+        additional_dependencies: ["bandit[toml]"]
+
+  # ── Docstring coverage ──
+  - repo: https://github.com/econchick/interrogate
+    rev: 1.7.0
+    hooks:
+      - id: interrogate
+        args: [--fail-under=80, --verbose]
+
+  # ── Commit message format ──
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v4.0.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: [feat, fix, refactor, docs, test, chore, ci, perf]
