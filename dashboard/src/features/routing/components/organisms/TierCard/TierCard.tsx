@@ -1,18 +1,6 @@
 import React from 'react';
 import { Select } from '@shared/components';
-
-export interface TierCardProps {
-  tier: number;
-  title: string;
-  description: string;
-  provider: string;
-  model: string;
-  providerOptions: string[];
-  modelOptions: string[];
-  onProviderChange?: (value: string) => void;
-  onModelChange?: (value: string) => void;
-  warning?: string;
-}
+import type { TierCardProps } from '@features/routing/types';
 
 export const TierCard: React.FC<TierCardProps> = ({
   tier,

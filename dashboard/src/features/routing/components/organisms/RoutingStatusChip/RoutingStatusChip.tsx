@@ -1,8 +1,5 @@
 import React from 'react';
-
-export interface RoutingStatusChipProps {
-  status?: string;
-}
+import type { RoutingStatusChipProps } from '@features/routing/types';
 
 export const RoutingStatusChip: React.FC<RoutingStatusChipProps> = ({
   status = 'Optimized for latency',

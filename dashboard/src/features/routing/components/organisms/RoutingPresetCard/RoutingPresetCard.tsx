@@ -1,15 +1,5 @@
 import React from 'react';
-
-export type PresetId = 'local' | 'balanced' | 'performance';
-
-export interface RoutingPresetCardProps {
-  id: PresetId;
-  icon: string;
-  title: string;
-  subtitle: string;
-  active?: boolean;
-  onClick?: (id: PresetId) => void;
-}
+import type { RoutingPresetCardProps } from '@features/routing/types';
 
 export const RoutingPresetCard: React.FC<RoutingPresetCardProps> = ({
   id,

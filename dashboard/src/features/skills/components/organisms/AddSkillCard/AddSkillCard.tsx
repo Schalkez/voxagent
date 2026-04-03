@@ -1,8 +1,5 @@
 import React from 'react';
-
-export interface AddSkillCardProps {
-  onClick?: () => void;
-}
+import type { AddSkillCardProps } from '@features/skills/types';
 
 export const AddSkillCard: React.FC<AddSkillCardProps> = ({ onClick }) => {
   return (
