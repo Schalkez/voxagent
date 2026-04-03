@@ -5,9 +5,8 @@ import {
   AddSkillCard,
   SkillsFooter,
 } from '@features/skills/components/organisms';
+import { SKILL_CATEGORIES } from '@features/skills/constants';
 import { useSkills, useToggleSkill } from '@features/skills/hooks/useSkills';
-
-const CATEGORIES = ['All Categories', 'System', 'Media', 'Browser'];
 
 export const SkillsView: React.FC = () => {
   const { skills, loading, error, setSkills } = useSkills();
@@ -27,7 +26,6 @@ export const SkillsView: React.FC = () => {
       );
     }
     if (category !== 'All Categories') {
-      // Simple category matching based on permissions/description
       const cat = category.toLowerCase();
       result = result.filter(
         (s) =>
@@ -41,7 +39,6 @@ export const SkillsView: React.FC = () => {
   const activeCount = skills.filter((s) => s.enabled).length;
 
   const handleToggle = async (skillId: string, enabled: boolean) => {
-    // Optimistic update
     setSkills(
       skills.map((s) => (s.id === skillId ? { ...s, enabled } : s))
     );
@@ -64,7 +61,6 @@ export const SkillsView: React.FC = () => {
     <MainLayout breadcrumbPaths={['VOXAGENT', 'Skills']}>
       <div className="flex flex-col min-h-[calc(100vh-64px)]">
         <section className="p-8 flex-1">
-          {/* API Status Banner */}
           {error && (
             <div className="mb-8 px-4 py-2 rounded-lg bg-tertiary/10 border border-tertiary/20 text-tertiary text-[11px] font-mono uppercase tracking-wider">
               {error}
@@ -87,7 +83,7 @@ export const SkillsView: React.FC = () => {
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
               >
-                {CATEGORIES.map((cat) => (
+                {SKILL_CATEGORIES.map((cat) => (
                   <option key={cat} value={cat}>
                     {cat}
                   </option>
@@ -121,7 +117,6 @@ export const SkillsView: React.FC = () => {
           </div>
         </section>
 
-        {/* ── Footer Stats ── */}
         <SkillsFooter
           activeCount={activeCount}
           systemHealth="99.8%"

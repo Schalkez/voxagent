@@ -5,14 +5,9 @@ import {
   TierCard,
   RoutingStatusChip,
 } from '@features/routing/components/organisms';
-import type { PresetId } from '@features/routing/components/organisms/RoutingPresetCard/RoutingPresetCard';
+import type { PresetId } from '@features/routing/types';
+import { ROUTING_PRESETS } from '@features/routing/constants';
 import { useRoutingConfig } from '@features/routing/hooks/useRouting';
-
-const PRESETS: { id: PresetId; icon: string; title: string; subtitle: string }[] = [
-  { id: 'local', icon: 'cloud_off', title: 'Fully Local (Offline)', subtitle: 'Privacy Focus' },
-  { id: 'balanced', icon: 'bolt', title: 'Speed & Free Cloud', subtitle: 'Efficiency Balanced' },
-  { id: 'performance', icon: 'rocket_launch', title: 'Max Performance', subtitle: 'Complex Reasoner' },
-];
 
 export const RoutingView: React.FC = () => {
   const { config, loading, error, setConfig } = useRoutingConfig();
@@ -50,7 +45,6 @@ export const RoutingView: React.FC = () => {
   return (
     <MainLayout breadcrumbPaths={['VOXAGENT', 'Routing']}>
       <div className="p-8 max-w-6xl w-full mx-auto">
-        {/* API Status Banner */}
         {error && (
           <div className="mb-8 px-4 py-2 rounded-lg bg-tertiary/10 border border-tertiary/20 text-tertiary text-[11px] font-mono uppercase tracking-wider">
             {error}
@@ -68,7 +62,7 @@ export const RoutingView: React.FC = () => {
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {PRESETS.map((p) => (
+            {ROUTING_PRESETS.map((p) => (
               <RoutingPresetCard
                 key={p.id}
                 {...p}
@@ -81,7 +75,6 @@ export const RoutingView: React.FC = () => {
 
         {/* ── Tier Pipeline ── */}
         <section className="relative">
-          {/* Vertical connection line */}
           <div className="absolute left-12 top-0 bottom-0 w-[1px] bg-gradient-to-b from-primary/50 via-zinc-800 to-transparent z-0 ml-[-0.5px]" />
           <div className="flex flex-col gap-6 relative z-10">
             {config.tiers.map((t, i) => (
@@ -102,7 +95,6 @@ export const RoutingView: React.FC = () => {
           </div>
         </section>
 
-        {/* ── Status Chip ── */}
         <RoutingStatusChip status={config.status} />
       </div>
     </MainLayout>

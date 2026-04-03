@@ -1,10 +1,5 @@
 import React from 'react';
-
-export interface SkillsFooterProps {
-  activeCount: number;
-  systemHealth: string;
-  lastUpdate: string;
-}
+import type { SkillsFooterProps } from '@features/skills/types';
 
 export const SkillsFooter: React.FC<SkillsFooterProps> = ({
   activeCount,
