@@ -187,6 +187,71 @@ async def get_usage(provider_id: str) -> dict[str, object]:
     }
 
 
+# ── Routing Config ──
+
+# In-memory routing state (persisted to config.yaml later)
+_routing_config: dict[str, object] = {
+    "preset": "balanced",
+    "tiers": [
+        {
+            "tier": 1,
+            "title": "Tier 1 (Speed & Simple)",
+            "description": "Fastest. Used for simple intents, parsing, and extraction.",
+            "provider": "Groq",
+            "model": "llama-3.1-8b-instant",
+            "provider_options": ["Groq", "OpenAI", "Mistral"],
+            "model_options": ["llama-3.1-8b-instant", "mixtral-8x7b-32768", "gemma-7b-it"],
+        },
+        {
+            "tier": 2,
+            "title": "Tier 2 (Reasoning)",
+            "description": "Balanced. Used for logic, file management, and multi-step plans.",
+            "provider": "Ollama",
+            "model": "qwen2.5:7b",
+            "provider_options": ["Ollama", "Azure AI", "AWS Bedrock"],
+            "model_options": ["qwen2.5:7b", "llama3:8b-instruct", "mistral-v0.3"],
+        },
+        {
+            "tier": 3,
+            "title": "Tier 3 (Complex & Vision)",
+            "description": "Heavy lifting. Used for code review, screen reading, and complex problem solving.",
+            "provider": "Anthropic",
+            "model": "claude-3-5-sonnet",
+            "provider_options": ["Anthropic", "Google Vertex", "OpenAI"],
+            "model_options": ["claude-3-5-sonnet", "gpt-4o-2024-08-06", "gemini-1.5-pro"],
+            "warning": "High Cost",
+        },
+    ],
+    "status": "Optimized for latency",
+}
+
+
+class RoutingConfigRequest(BaseModel):
+    """Request body for updating routing config."""
+
+    preset: str
+    tiers: list[dict[str, object]]
+    status: str
+
+
+@app.get("/api/routing")
+async def get_routing() -> dict[str, object]:
+    """Get the current tier routing configuration."""
+    return _routing_config
+
+
+@app.put("/api/routing")
+async def update_routing(body: RoutingConfigRequest) -> dict[str, object]:
+    """Update the tier routing configuration."""
+    global _routing_config
+    _routing_config = {
+        "preset": body.preset,
+        "tiers": body.tiers,
+        "status": body.status,
+    }
+    return {"success": True}
+
+
 # ── Entry Point ──
 
 
