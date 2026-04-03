@@ -13,6 +13,9 @@ dependencies = [
     "pydantic>=2.9",
     "aiosqlite>=0.20",
     "httpx>=0.28",
+    "pyyaml>=6.0",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.34",
 ]
 
 [project.optional-dependencies]
@@ -30,13 +33,14 @@ dev = [
 
 [project.scripts]
 voxagent = "core.app:main"
+voxagent-api = "api.server:main"
 
 [build-system]
 requires = ["setuptools>=75.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["core*", "providers*", "platform*", "skills*"]
+include = ["core*", "providers*", "platform*", "skills*", "api*"]
 
 # ── RUFF ──────────────────────────────────────────
 [tool.ruff]
