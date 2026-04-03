@@ -5,11 +5,12 @@ import {
   OllamaCard,
   QuotaStats,
 } from '../components/organisms';
-import { useProviders, useSaveKey } from '../hooks/useProviders';
+import { useProviders, useSaveKey, useTestConnection } from '../hooks/useProviders';
 
 export const ProvidersView: React.FC = () => {
   const { providers, loading, error } = useProviders();
   const { saveKey } = useSaveKey();
+  const { testConnection } = useTestConnection();
 
   const cloudProviders = providers.filter((p) => p.provider_type === 'cloud');
   const ollamaProvider = providers.find((p) => p.id === 'ollama');
@@ -72,7 +73,7 @@ export const ProvidersView: React.FC = () => {
             </div>
             <OllamaCard
               baseUrl="http://localhost:11434"
-              onTest={() => console.log('[Ollama] Test connection')}
+              onTest={() => void testConnection('ollama')}
             />
           </section>
         )}
