@@ -252,6 +252,98 @@ async def update_routing(body: RoutingConfigRequest) -> dict[str, object]:
     return {"success": True}
 
 
+# ── Skills Config ──
+
+_skills: list[dict[str, object]] = [
+    {
+        "id": "youtube_ad_skipper",
+        "name": "YouTube Ad Skipper",
+        "icon": "ads_click",
+        "version": "v1.0.0",
+        "author": "minhtq",
+        "description": "Automatically skips YouTube ads using browser control.",
+        "enabled": True,
+        "permissions": [
+            {"name": "browser:control", "level": "safe"},
+            {"name": "screen:read", "level": "elevated"},
+        ],
+    },
+    {
+        "id": "terminal_control",
+        "name": "Terminal Control",
+        "icon": "terminal",
+        "version": "v0.9.4",
+        "author": "jarvis_core",
+        "description": "Execute terminal commands and manage system processes safely.",
+        "enabled": False,
+        "permissions": [
+            {"name": "terminal:write", "level": "dangerous"},
+            {"name": "system:info", "level": "safe"},
+        ],
+    },
+    {
+        "id": "spotify_controller",
+        "name": "Spotify Controller",
+        "icon": "music_note",
+        "version": "v2.1.0",
+        "author": "audio_team",
+        "description": "Seamless playback control and playlist management for Spotify.",
+        "enabled": True,
+        "permissions": [
+            {"name": "media:control", "level": "safe"},
+            {"name": "account:read", "level": "safe"},
+        ],
+    },
+    {
+        "id": "browser_automation",
+        "name": "Browser Automation",
+        "icon": "robot_2",
+        "version": "v1.2.3",
+        "author": "web_bot",
+        "description": "Automate repetitive web tasks and data scraping.",
+        "enabled": True,
+        "permissions": [
+            {"name": "browser:control", "level": "safe"},
+            {"name": "network:access", "level": "elevated"},
+        ],
+    },
+    {
+        "id": "voice_recognition",
+        "name": "Voice Recognition",
+        "icon": "keyboard_voice",
+        "version": "v3.0.1",
+        "author": "ai_labs",
+        "description": "Advanced voice-to-text processing for voice commands.",
+        "enabled": True,
+        "permissions": [
+            {"name": "audio:record", "level": "dangerous"},
+        ],
+    },
+]
+
+
+class ToggleSkillRequest(BaseModel):
+    """Request body for toggling a skill."""
+
+    enabled: bool
+
+
+@app.get("/api/skills")
+async def list_skills() -> list[dict[str, object]]:
+    """List all registered skills."""
+    return _skills
+
+
+@app.post("/api/skills/{skill_id}/toggle")
+async def toggle_skill(skill_id: str, body: ToggleSkillRequest) -> dict[str, object]:
+    """Enable or disable a skill."""
+    for skill in _skills:
+        if skill["id"] == skill_id:
+            skill["enabled"] = body.enabled
+            return {"success": True, "skill": skill_id, "enabled": body.enabled}
+    raise HTTPException(status_code=404, detail=f"Skill not found: {skill_id}")
+
+
 # ── Entry Point ──
 
 
