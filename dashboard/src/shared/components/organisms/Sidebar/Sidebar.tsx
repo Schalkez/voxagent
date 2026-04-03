@@ -1,6 +1,6 @@
 import React from 'react';
-import { NavItem, StatusBadge } from '../../molecules';
-import { Text } from '../../atoms';
+import { NavItem, StatusBadge } from '@shared/components';
+import { Text } from '@shared/components';
 
 export const Sidebar: React.FC = () => {
   return (

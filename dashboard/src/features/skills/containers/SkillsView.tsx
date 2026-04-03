@@ -1,5 +1,5 @@
 import React from 'react';
-import { MainLayout } from '../../../shared/components';
+import { MainLayout } from '@shared/components';
 
 export const SkillsView: React.FC = () => {
   return (

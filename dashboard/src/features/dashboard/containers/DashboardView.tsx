@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { MainLayout, Input, Switch, Slider, Avatar, ProgressBar, Select, Card } from '../../../shared/components';
-import { HeroCard, BentoGrid, TerminalLog } from '../components/organisms';
+import { MainLayout, Input, Switch, Slider, Avatar, ProgressBar, Select, Card } from '@shared/components';
+import { HeroCard, BentoGrid, TerminalLog } from '@features/dashboard/components/organisms';
 
 export const DashboardView: React.FC = () => {
   const [switchState, setSwitchState] = useState(false);

@@ -1,6 +1,6 @@
 import React from 'react';
-import { Breadcrumb } from '../../molecules';
-import { Button } from '../../../components/Button/Button'; // Accessing original button for now, will fix import paths if needed later
+import { Breadcrumb } from '@shared/components';
+import { Button } from '@shared/components';
 
 export interface TopbarProps {
   paths: string[];

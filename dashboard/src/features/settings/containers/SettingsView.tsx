@@ -1,5 +1,5 @@
 import React from 'react';
-import { MainLayout } from '../../../shared/components';
+import { MainLayout } from '@shared/components';
 
 export const SettingsView: React.FC = () => {
   return (

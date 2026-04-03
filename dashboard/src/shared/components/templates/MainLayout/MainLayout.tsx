@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sidebar, Topbar } from '../../organisms';
+import { Sidebar, Topbar } from '@shared/components';
 
 export interface MainLayoutProps {
   children: React.ReactNode;

@@ -4,8 +4,8 @@ import {
   ProviderCard,
   OllamaCard,
   QuotaStats,
-} from '../components/organisms';
-import { useProviders, useSaveKey, useTestConnection } from '../hooks/useProviders';
+} from '@features/providers/components/organisms';
+import { useProviders, useSaveKey, useTestConnection } from '@features/providers/hooks/useProviders';
 
 export const ProvidersView: React.FC = () => {
   const { providers, loading, error } = useProviders();

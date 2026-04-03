@@ -8,4 +8,4 @@ export * from './Slider/Slider';
 export * from './Avatar/Avatar';
 export * from './ProgressBar/ProgressBar';
 // Assume Button/Button is already imported in upper level or export it here too if moved
-export * from '../Button/Button';
+export * from '@shared/components/Button/Button';
