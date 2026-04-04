@@ -6,8 +6,9 @@ Uses Pydantic for typed configuration access.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 from typing import Any
 
 import yaml
@@ -205,7 +206,7 @@ def load_config(config_dir: Path | None = None) -> VoxAgentConfig:
         )
     )
 
-from dataclasses import asdict
+
 
 def save_config(config: VoxAgentConfig, config_dir: Path | None = None) -> None:
     """Save VoxAgent configuration to YAML file.
@@ -221,5 +222,8 @@ def save_config(config: VoxAgentConfig, config_dir: Path | None = None) -> None:
     config_dir.mkdir(parents=True, exist_ok=True)
     config_file = config_dir / "config.yaml"
 
-    with open(config_file, "w", encoding="utf-8") as f:
-        yaml.safe_dump(asdict(config), f, default_flow_style=False, sort_keys=False, allow_unicode=True)
+    # Atomic write: write to temp file first, then rename to prevent corruption on crash
+    with NamedTemporaryFile(mode="w", dir=config_dir, suffix=".yaml", delete=False, encoding="utf-8") as tmp:
+        yaml.safe_dump(asdict(config), tmp, default_flow_style=False, sort_keys=False, allow_unicode=True)
+        tmp_path = Path(tmp.name)
+    tmp_path.replace(config_file)
