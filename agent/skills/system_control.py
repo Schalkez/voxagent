@@ -150,7 +150,7 @@ class SystemControlSkill(BaseSkill):
                 tts_response="Lệnh hệ thống quá thời gian chờ.",
                 tier_used=ExecutionTier.NATIVE_API,
             )
-        except Exception as e:
+        except (subprocess.CalledProcessError, OSError, FileNotFoundError) as e:
             logger.exception("System command failed: %s", cmd)
             return SkillResult(
                 success=False,

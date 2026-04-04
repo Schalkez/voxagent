@@ -54,7 +54,7 @@ class WindowsAutomation(SystemAutomation):
                 pid=pid.value,
                 bounds=bounds,
             )
-        except Exception:
+        except (OSError, ctypes.ArgumentError, AttributeError):
             logger.exception("Failed to get active window")
             return WindowInfo(
                 title="Unknown",
@@ -123,7 +123,7 @@ class WindowsAutomation(SystemAutomation):
                 user32.keybd_event(vk_code, 0, 0x0003, 0)
 
             logger.info("Volume set to ~%d%% (%d steps)", level, steps)
-        except Exception:
+        except (OSError, AttributeError):
             logger.exception("Failed to set volume to %d", level)
 
     def get_volume(self) -> int:
@@ -148,5 +148,5 @@ def _get_process_name(pid: int) -> str:
 
         proc = psutil.Process(pid)
         return proc.name()
-    except Exception:
+    except (ImportError, AttributeError, OSError):
         return "unknown"

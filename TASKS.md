@@ -1,6 +1,6 @@
 # 📋 VOXAGENT — Master Tasks
 
-> Cập nhật lần cuối: 2026-04-04
+> Cập nhật lần cuối: 2026-04-04 (Phase 1 COMPLETE)
 > Baselines: [ROADMAP.md](docs/ROADMAP.md) | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | [SKILL_DEVELOPMENT_GUIDE.md](docs/SKILL_DEVELOPMENT_GUIDE.md)
 
 ---
@@ -100,8 +100,9 @@
 - [x] `config.py` — YAML config loader
 - [x] Config validation (dataclass types)
 - [x] 4 built-in profiles: `full_local`, `cloud_free`, `hybrid`, `budget_cloud`
-- [ ] Profile switching: `voxagent start --profile <name>`
-- [ ] `~/.voxagent/config.yaml` auto-generation on first run
+- [x] Profile switching: `voxagent start --profile <name>`
+- [x] `~/.voxagent/config.yaml` auto-generation on first run
+- [x] Setup wizard: `voxagent setup`
 
 ### 1.6 System Tray (`agent/`)
 
@@ -167,14 +168,18 @@
   - [x] Coming Soon UI with mock task list
 - [x] Memory (`/memory`) — preview stub
   - [x] Coming Soon UI with mock conversation history
-- [ ] Dashboard Home (`/`) — overview (has HeroCard, BentoGrid, TerminalLog)
+- [x] Dashboard Home (`/`) — overview with real API integration
+  - [x] HeroCard with live online/listening/offline status
+  - [x] BentoGrid with live stats (commands, latency, skills)
+  - [x] TerminalLog with command history
+  - [x] useDashboardStatus hook polling /api/status
 
 ### 1.D.3 Code Quality
 
 - [x] Separation of concerns: types/, constants/, utils/ per feature
 - [x] Barrel re-export only in index.ts
 - [x] Convention enforcement (voxagent-conventions SKILL.md)
-- [ ] Refactor providers feature — apply same types/constants separation
+- [x] Refactor providers feature — types/ and constants/ separation
 
 ---
 

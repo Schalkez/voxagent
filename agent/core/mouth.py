@@ -83,7 +83,7 @@ class Mouth:
             wav_data = await self._tts.synthesize(text, voice=cfg.voice, speed=cfg.speed)
             await _play_wav(wav_data, volume=cfg.volume)
             logger.debug("Spoke: '%s' (voice=%s)", text[:50], cfg.voice)
-        except Exception:
+        except (RuntimeError, OSError):
             logger.exception("Failed to speak: '%s'", text[:50])
 
     async def play_earcon(self, sound: str) -> None:
@@ -143,5 +143,5 @@ async def _play_wav(wav_data: bytes, volume: float = 1.0) -> None:
 
         sd.play(audio, samplerate=sample_rate)
         sd.wait()
-    except Exception:
+    except (OSError, ValueError, wave.Error):
         logger.exception("Audio playback failed")

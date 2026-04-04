@@ -73,7 +73,7 @@ class EdgeTTSProvider(TTSProvider):
 
             voices = await edge_tts.list_voices()
             return len(voices) > 0
-        except Exception:
+        except (ImportError, RuntimeError, ConnectionError):
             return False
 
 

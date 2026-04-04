@@ -45,7 +45,7 @@ def _send_media_key(vk_code: int) -> bool:
         user32.keybd_event(vk_code, 0, KEYEVENTF_EXTENDEDKEY, 0)
         user32.keybd_event(vk_code, 0, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0)
         return True
-    except Exception:
+    except (AttributeError, OSError):
         logger.exception("Failed to send media key: 0x%02X", vk_code)
         return False
 

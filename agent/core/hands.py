@@ -122,7 +122,7 @@ class Hands:
                 if result.success:
                     return result
                 last_error = result.error
-            except Exception as exc:
+            except (RuntimeError, OSError, TypeError, ValueError) as exc:
                 last_error = f"Tier {tier.value} failed: {exc}"
                 logger.warning(last_error)
                 continue
@@ -177,6 +177,6 @@ class Hands:
 
             logger.info("Unclear confirmation response '%s' — defaulting to deny", answer)
             return False
-        except Exception:
+        except (TimeoutError, RuntimeError, OSError):
             logger.exception("Error during confirmation — defaulting to deny")
             return False

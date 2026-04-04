@@ -141,6 +141,37 @@ app.include_router(skills.router)
 app.include_router(settings.router)
 
 
+# ── Dashboard Status Endpoint ──
+
+
+@app.get("/api/status")
+async def get_system_status() -> dict[str, object]:
+    """Return system status for the dashboard home page."""
+    from skills.registry import registry as skill_registry
+
+    all_skills = skill_registry.get_all_skills()
+    active_count = len(all_skills)
+
+    return {
+        "status": "online",
+        "listening": False,
+        "skills": {
+            "active": active_count,
+            "total": active_count,
+        },
+        "providers": {
+            "llm": list(app.state.provider_registry._llm_providers.keys()),
+            "stt": list(app.state.provider_registry._stt_providers.keys()),
+            "tts": list(app.state.provider_registry._tts_providers.keys()),
+        },
+        "stats": {
+            "daily_commands": 0,
+            "avg_latency_ms": 0,
+            "uptime_seconds": 0,
+        },
+    }
+
+
 # ── Entry Point ──
 
 

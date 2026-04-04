@@ -33,9 +33,9 @@ def _create_icon_image(color: tuple[int, int, int], size: int = 64) -> Any:
     """
     try:
         from PIL import Image, ImageDraw
-    except ImportError as err:
-        msg = "Pillow not installed. Run: pip install Pillow"
-        raise RuntimeError(msg) from err
+    except ImportError:
+        logger.warning("Pillow not installed — tray icons disabled. Run: pip install Pillow")
+        return None
 
     image = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)

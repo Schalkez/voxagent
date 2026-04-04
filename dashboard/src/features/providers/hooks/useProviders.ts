@@ -7,33 +7,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { fetchApi } from '@shared/api/client';
-
-// ── Types ──
-
-export interface ProviderInfo {
-  id: string;
-  name: string;
-  icon: string;
-  provider_type: string;
-  status: 'connected' | 'missing';
-  has_key: boolean;
-}
-
-export interface TestResult {
-  ok: boolean;
-  latency_ms: number;
-  message: string;
-}
-
-// ── Mock Data (fallback when API is unreachable) ──
-
-const MOCK_PROVIDERS: ProviderInfo[] = [
-  { id: 'openai', name: 'OpenAI', icon: 'psychology', provider_type: 'cloud', status: 'connected', has_key: true },
-  { id: 'groq', name: 'Groq', icon: 'bolt', provider_type: 'cloud', status: 'connected', has_key: true },
-  { id: 'anthropic', name: 'Anthropic', icon: 'shield', provider_type: 'cloud', status: 'connected', has_key: true },
-  { id: 'gemini', name: 'Gemini', icon: 'flare', provider_type: 'cloud', status: 'missing', has_key: false },
-  { id: 'ollama', name: 'Ollama', icon: 'terminal', provider_type: 'local', status: 'connected', has_key: false },
-];
+import type { ProviderInfo, TestResult } from '@features/providers/types';
+import { MOCK_PROVIDERS } from '@features/providers/constants';
 
 // ── Hooks ──
 

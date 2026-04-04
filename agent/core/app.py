@@ -239,20 +239,107 @@ class VoxAgentApp:
 
             except asyncio.CancelledError:
                 break
-            except Exception:
+            except (RuntimeError, OSError, KeyError):
                 logger.exception("Error in main loop")
                 await asyncio.sleep(0.5)
 
 
 def main() -> None:
-    """CLI entry point for the voxagent command."""
+    """CLI entry point for the voxagent command.
+
+    Supports:
+        voxagent start [--debug] [--profile <name>]
+        voxagent setup  (first-time config wizard)
+    """
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        prog="voxagent",
+        description="VoxAgent — Voice-controlled desktop AI agent",
+    )
+    subparsers = parser.add_subparsers(dest="command", help="Available commands")
+
+    # voxagent start
+    start_parser = subparsers.add_parser("start", help="Start the voice agent")
+    start_parser.add_argument("--debug", action="store_true", help="Enable debug logging")
+    start_parser.add_argument(
+        "--profile",
+        choices=["full_local", "cloud_free", "hybrid", "budget_cloud"],
+        help="Load a built-in configuration profile",
+    )
+
+    # voxagent setup
+    subparsers.add_parser("setup", help="Run first-time configuration wizard")
+
+    args = parser.parse_args()
+
+    # Default to "start" if no command given
+    if args.command is None:
+        args.command = "start"
+        args.debug = "--debug" in sys.argv
+        args.profile = None
+
     logging.basicConfig(
-        level=logging.DEBUG if "--debug" in sys.argv else logging.INFO,
+        level=logging.DEBUG if getattr(args, "debug", False) else logging.INFO,
         format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
     )
 
-    app = VoxAgentApp(debug="--debug" in sys.argv)
+    if args.command == "setup":
+        _run_setup()
+        return
+
+    # Load profile if specified, otherwise use default config
+    if getattr(args, "profile", None):
+        from core.config import load_profile, save_config
+
+        config = load_profile(args.profile)
+        save_config(config)
+        logger.info("Loaded profile: %s", args.profile)
+
+    # Auto-generate config on first run
+    _ensure_config_exists()
+
+    app = VoxAgentApp(debug=getattr(args, "debug", False))
     asyncio.run(app.start())
+
+
+def _ensure_config_exists() -> None:
+    """Create default config file if it doesn't exist yet."""
+    config_dir = Path.home() / ".voxagent"
+    config_file = config_dir / "config.yaml"
+
+    if config_file.exists():
+        return
+
+    from core.config import save_config
+
+    config_dir.mkdir(parents=True, exist_ok=True)
+    default_config = load_config()
+    save_config(default_config)
+    logger.info("Created default config at %s", config_file)
+
+
+def _run_setup() -> None:
+    """Interactive first-time setup wizard."""
+    from core.config import list_profiles, load_profile, save_config
+
+    print("\n🤖 VoxAgent Setup Wizard\n")
+    print("Available configuration profiles:\n")
+
+    profiles = list_profiles()
+    for i, (name, desc) in enumerate(profiles.items(), 1):
+        print(f"  {i}. {name:15s} — {desc}")
+
+    print()
+    choice = input("Choose a profile (1-4) or press Enter for 'cloud_free': ").strip()
+
+    profile_names = list(profiles.keys())
+    selected = profile_names[int(choice) - 1] if choice in ("1", "2", "3", "4") else "cloud_free"
+
+    config = load_profile(selected)
+    save_config(config)
+    print(f"\n✅ Config saved with profile '{selected}' at ~/.voxagent/config.yaml")
+    print("Run 'voxagent start' to begin.\n")
 
 
 if __name__ == "__main__":
