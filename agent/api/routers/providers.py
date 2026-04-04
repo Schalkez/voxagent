@@ -32,7 +32,9 @@ async def save_provider_key_route(provider_id: str, body: SaveKeyRequest) -> dic
 
 
 @router.post("/{provider_id}/test")
-async def test_provider_route(provider_id: str, registry: ProviderRegistry = Depends(get_provider_registry)) -> dict[str, object]:
+async def test_provider_route(
+    provider_id: str, registry: ProviderRegistry = Depends(get_provider_registry)
+) -> dict[str, object]:
     """Test connectivity to a provider."""
     if provider_id not in PROVIDER_META:
         raise HTTPException(status_code=404, detail=f"Unknown provider: {provider_id}")

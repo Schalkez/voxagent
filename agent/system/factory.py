@@ -14,6 +14,7 @@ def _get_system_automation() -> SystemAutomation:
 
     if os_name == "windows":
         from system.windows import WindowsAutomation
+
         return WindowsAutomation()
     if os_name == "darwin":
         raise NotImplementedError("MacOS automation is not supported yet.")

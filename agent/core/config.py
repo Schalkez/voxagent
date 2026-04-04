@@ -102,15 +102,19 @@ class AudioConfig:
 @dataclass(frozen=True)
 class WakeWordConfig:
     """Wake word detection configuration."""
+
     engine: str = "openwakeword"
     phrase: str = "hey vox"
     sensitivity: float = 0.7
 
+
 @dataclass(frozen=True)
 class SecurityConfig:
     """Security and safety configuration."""
+
     confirm_dangerous_actions: bool = True
     max_file_delete_without_confirm: int = 0
+
 
 @dataclass
 class VoxAgentConfig:
@@ -220,9 +224,8 @@ def load_config(config_dir: Path | None = None) -> VoxAgentConfig:
         security=SecurityConfig(
             confirm_dangerous_actions=bool(sec_raw.get("confirm_dangerous_actions", True)),
             max_file_delete_without_confirm=int(sec_raw.get("max_file_delete_without_confirm", 0)),
-        )
+        ),
     )
-
 
 
 def save_config(config: VoxAgentConfig, config_dir: Path | None = None) -> None:
@@ -240,7 +243,132 @@ def save_config(config: VoxAgentConfig, config_dir: Path | None = None) -> None:
     config_file = config_dir / "config.yaml"
 
     # Atomic write: write to temp file first, then rename to prevent corruption on crash
-    with NamedTemporaryFile(mode="w", dir=config_dir, suffix=".yaml", delete=False, encoding="utf-8") as tmp:
-        yaml.safe_dump(asdict(config), tmp, default_flow_style=False, sort_keys=False, allow_unicode=True)
+    with NamedTemporaryFile(
+        mode="w", dir=config_dir, suffix=".yaml", delete=False, encoding="utf-8"
+    ) as tmp:
+        yaml.safe_dump(
+            asdict(config), tmp, default_flow_style=False, sort_keys=False, allow_unicode=True
+        )
         tmp_path = Path(tmp.name)
     tmp_path.replace(config_file)
+
+
+# ── Built-in Profiles ──
+
+_PROFILES: dict[str, dict[str, Any]] = {
+    "full_local": {
+        "description": "Fully local — no API keys needed. Uses Ollama + Whisper + Piper.",
+        "providers": {
+            "ollama": {"model": "llama3.1:8b", "base_url": "http://localhost:11434"},
+        },
+        "routing": {
+            "tier_0": {"type": "keyword"},
+            "tier_1": {"provider": "ollama", "model": "llama3.1:8b"},
+            "tier_2": {"provider": "ollama", "model": "llama3.1:8b"},
+            "fallback_chain": ["ollama"],
+        },
+        "stt": {"provider": "local", "model": "whisper-base", "language": "vi"},
+        "tts": {"provider": "edge_tts", "voice": "vi-female", "speed": 1.0},
+    },
+    "cloud_free": {
+        "description": "Free cloud tier — Groq (free) + Edge TTS (free).",
+        "providers": {
+            "groq": {"model": "llama-3.1-8b-instant"},
+        },
+        "routing": {
+            "tier_0": {"type": "keyword"},
+            "tier_1": {"provider": "groq", "model": "llama-3.1-8b-instant"},
+            "tier_2": {"provider": "groq", "model": "llama-3.1-70b-versatile"},
+            "fallback_chain": ["groq"],
+        },
+        "stt": {"provider": "local", "model": "whisper-base", "language": "vi"},
+        "tts": {"provider": "edge_tts", "voice": "vi-female", "speed": 1.0},
+    },
+    "hybrid": {
+        "description": "Balanced — Groq for speed, Anthropic for complex tasks.",
+        "providers": {
+            "groq": {"model": "llama-3.1-8b-instant"},
+            "anthropic": {"model": "claude-3-5-sonnet-20241022"},
+        },
+        "routing": {
+            "tier_0": {"type": "keyword"},
+            "tier_1": {"provider": "groq", "model": "llama-3.1-8b-instant"},
+            "tier_2": {"provider": "anthropic", "model": "claude-3-5-sonnet-20241022"},
+            "fallback_chain": ["groq", "anthropic"],
+        },
+        "stt": {"provider": "local", "model": "whisper-base", "language": "vi"},
+        "tts": {"provider": "edge_tts", "voice": "vi-female", "speed": 1.0},
+    },
+    "budget_cloud": {
+        "description": "Cost-effective — Groq primary, Ollama fallback.",
+        "providers": {
+            "groq": {"model": "llama-3.1-8b-instant"},
+            "ollama": {"model": "llama3.1:8b", "base_url": "http://localhost:11434"},
+        },
+        "routing": {
+            "tier_0": {"type": "keyword"},
+            "tier_1": {"provider": "groq", "model": "llama-3.1-8b-instant"},
+            "tier_2": {"provider": "groq", "model": "llama-3.1-8b-instant"},
+            "fallback_chain": ["groq", "ollama"],
+        },
+        "stt": {"provider": "local", "model": "whisper-base", "language": "vi"},
+        "tts": {"provider": "edge_tts", "voice": "vi-female", "speed": 1.0},
+    },
+}
+
+
+def list_profiles() -> dict[str, str]:
+    """List available configuration profiles with descriptions.
+
+    Returns:
+        Dict mapping profile name to description string.
+    """
+    return {name: data["description"] for name, data in _PROFILES.items()}
+
+
+def load_profile(name: str) -> VoxAgentConfig:
+    """Load a named configuration profile.
+
+    Args:
+        name: Profile name ('full_local', 'cloud_free', 'hybrid', 'budget_cloud').
+
+    Returns:
+        VoxAgentConfig instance populated from the profile.
+
+    Raises:
+        ValueError: If profile name is not recognized.
+    """
+    if name not in _PROFILES:
+        available = ", ".join(_PROFILES)
+        msg = f"Unknown profile '{name}'. Available: {available}"
+        raise ValueError(msg)
+
+    profile = _PROFILES[name]
+
+    providers = {k: ProviderConfig(**v) for k, v in profile.get("providers", {}).items()}
+
+    routing_raw = profile.get("routing", {})
+    routing = RoutingConfig(
+        tier_0=_parse_tier(routing_raw.get("tier_0", {})),
+        tier_1=_parse_tier(routing_raw.get("tier_1", {})),
+        tier_2=_parse_tier(routing_raw.get("tier_2", {})),
+        fallback_chain=routing_raw.get("fallback_chain", []),
+    )
+
+    stt_raw = profile.get("stt", {})
+    tts_raw = profile.get("tts", {})
+
+    return VoxAgentConfig(
+        providers=providers,
+        routing=routing,
+        stt=STTConfig(
+            provider=stt_raw.get("provider", "local"),
+            model=stt_raw.get("model", "whisper-base"),
+            language=stt_raw.get("language", "vi"),
+        ),
+        tts=TTSConfig(
+            provider=tts_raw.get("provider", "edge_tts"),
+            voice=tts_raw.get("voice", "vi-female"),
+            speed=float(tts_raw.get("speed", 1.0)),
+        ),
+    )

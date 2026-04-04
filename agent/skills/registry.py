@@ -49,7 +49,7 @@ class SkillRegistry:
             raise VoxAPIException(
                 message=f"Skill '{name}' not found in registry.",
                 status_code=404,
-                code="skill_not_found"
+                code="skill_not_found",
             )
         return skill
 
@@ -68,9 +68,11 @@ class SkillRegistry:
 
         added_count = 0
         if not hasattr(package, "__path__"):
-             return
+            return
 
-        for _, module_name, is_pkg in pkgutil.walk_packages(package.__path__, package.__name__ + "."):
+        for _, module_name, is_pkg in pkgutil.walk_packages(
+            package.__path__, package.__name__ + "."
+        ):
             if not is_pkg:
                 try:
                     importlib.import_module(module_name)
@@ -83,6 +85,7 @@ class SkillRegistry:
 
 # Create a global instance for easy access
 registry = SkillRegistry()
+
 
 def register_skill(skill_class: type[BaseSkill]) -> type[BaseSkill]:
     """Helper decorator that automatically uses the global registry."""

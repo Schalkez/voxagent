@@ -5,10 +5,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/your-org/voxagent/actions"><img src="https://img.shields.io/github/actions/workflow/status/your-org/voxagent/ci.yml?label=CI" alt="CI"></a>
+  <a href="https://github.com/voxagent/voxagent/actions"><img src="https://img.shields.io/github/actions/workflow/status/voxagent/voxagent/ci.yml?label=CI" alt="CI"></a>
   <a href="https://pypi.org/project/voxagent-agent"><img src="https://img.shields.io/pypi/v/voxagent-agent" alt="PyPI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue" alt="License"></a>
-  <a href="https://discord.gg/voxagent"><img src="https://img.shields.io/discord/000000?label=Discord&logo=discord" alt="Discord"></a>
   <img src="https://img.shields.io/badge/python-3.12%2B-blue" alt="Python 3.12+">
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey" alt="Platform">
 </p>
@@ -19,8 +18,8 @@
 
 > *Nói "VoxAgent, khi Cursor xong thì check 100% chưa, chưa thì prompt tiếp" — rồi đi pha cà phê.*
 
-<!-- TODO: thay bằng GIF demo thực tế -->
-![Demo GIF](docs/assets/demo.gif)
+<!-- Demo GIF will be added after first working release -->
+<!-- ![Demo GIF](docs/assets/demo.gif) -->
 
 **VoxAgent** là AI agent chạy trên máy tính, luôn lắng nghe, nhận lệnh bằng **giọng nói**, thao tác máy tính ở tầng giao diện (chuột, bàn phím, đọc màn hình), và báo cáo kết quả bằng giọng nói. Hỗ trợ **cả model local lẫn cloud** — người dùng tự chọn provider cho từng tác vụ.
 
@@ -37,7 +36,7 @@ pip install voxagent-agent
 Hoặc cài từ source:
 
 ```bash
-git clone https://github.com/your-org/voxagent
+git clone https://github.com/voxagent/voxagent
 cd voxagent
 pip install -e ".[dev]"
 ```

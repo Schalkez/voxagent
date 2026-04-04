@@ -7,10 +7,20 @@ Execution Strategy (mandatory priority order):
 - Tier D: Mouse / Keyboard (PyAutoGUI — last resort only)
 """
 
+from __future__ import annotations
+
+import logging
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from skills.base import ExecutionTier, SkillIntent, SkillResult
 from skills.registry import registry as skill_registry
+
+if TYPE_CHECKING:
+    from core.ears import Ears
+    from core.mouth import Mouth
+
+logger = logging.getLogger("voxagent.hands")
 
 
 @dataclass(frozen=True)
@@ -41,6 +51,9 @@ DANGEROUS_ACTIONS = frozenset(
     }
 )
 
+_CONFIRM_YES_WORDS = frozenset({"có", "vâng", "ừ", "ok", "yes", "đúng", "chắc"})
+_CONFIRM_NO_WORDS = frozenset({"không", "thôi", "hủy", "no", "cancel", "dừng"})
+
 
 class Hands:
     """Executes actions using the cheapest viable execution tier.
@@ -49,6 +62,20 @@ class Hands:
     and uses the first one that succeeds. Dangerous actions
     require voice confirmation before execution.
     """
+
+    def __init__(
+        self,
+        mouth: Mouth | None = None,
+        ears: Ears | None = None,
+    ) -> None:
+        """Initialize the Hands module.
+
+        Args:
+            mouth: Mouth module for voice confirmation prompts.
+            ears: Ears module for listening to confirmation responses.
+        """
+        self._mouth = mouth
+        self._ears = ears
 
     async def execute(self, intent: SkillIntent) -> SkillResult:
         """Execute an action using the loaded skills.
@@ -65,7 +92,8 @@ class Hands:
                 return SkillResult(
                     success=False,
                     error="User cancelled dangerous action",
-                    cancelled=True
+                    cancelled=True,
+                    tts_response="Đã hủy thao tác.",
                 )
 
         # 1. Fetch skill from registry
@@ -75,7 +103,7 @@ class Hands:
             return SkillResult(
                 success=False,
                 error=str(e),
-                tts_response="Tôi không tìm thấy kỹ năng này."
+                tts_response="Tôi không tìm thấy kỹ năng này.",
             )
 
         # 2. Check can handle
@@ -85,21 +113,38 @@ class Hands:
                 error="Skill assigned could not handle the intent.",
             )
 
-        # 3. Execute
-        # In a real environment, Hands would iterate over `skill.execution_tiers`
-        # and provide the necessary implementation objects to the skill execution.
-        try:
-            result = await skill.execute(intent)
-            return result
-        except Exception as exec_err:
+        # 3. Execute with tier priority (A → D)
+        last_error: str | None = None
+        for tier in skill.execution_tiers:
+            try:
+                logger.debug("Trying tier %s for skill %s", tier.value, skill.name)
+                result = await skill.execute(intent)
+                if result.success:
+                    return result
+                last_error = result.error
+            except Exception as exc:
+                last_error = f"Tier {tier.value} failed: {exc}"
+                logger.warning(last_error)
+                continue
+
+        if last_error:
             return SkillResult(
                 success=False,
-                error=f"Execution error: {exec_err}",
-                tts_response="Đã có lỗi xảy ra trong quá trình thao tác."
+                error=last_error,
+                tts_response="Đã có lỗi xảy ra trong quá trình thao tác.",
             )
+
+        return SkillResult(
+            success=False,
+            error="No execution tier succeeded",
+            tts_response="Không thể thực hiện lệnh này.",
+        )
 
     async def _require_confirmation(self, action: str, description: str) -> bool:
         """Request voice confirmation for dangerous actions.
+
+        Uses Mouth to ask the question and Ears to listen for the answer.
+        Falls back to auto-deny if Mouth/Ears are not configured.
 
         Args:
             action: The dangerous action type.
@@ -108,5 +153,30 @@ class Hands:
         Returns:
             True if user confirmed, False if cancelled.
         """
-        # Placeholder — will use TTS prompt + STT confirmation
-        return False
+        if self._mouth is None or self._ears is None:
+            logger.warning(
+                "Cannot confirm dangerous action '%s' — no voice I/O configured",
+                action,
+            )
+            return False
+
+        prompt = f"Hành động {action} có thể nguy hiểm. Anh có chắc không?"
+        await self._mouth.speak(prompt)
+
+        try:
+            transcription = await self._ears.push_to_talk(duration_s=5)
+            answer = transcription.text.lower().strip()
+
+            for word in answer.split():
+                if word in _CONFIRM_YES_WORDS:
+                    logger.info("User confirmed dangerous action: %s", action)
+                    return True
+                if word in _CONFIRM_NO_WORDS:
+                    logger.info("User denied dangerous action: %s", action)
+                    return False
+
+            logger.info("Unclear confirmation response '%s' — defaulting to deny", answer)
+            return False
+        except Exception:
+            logger.exception("Error during confirmation — defaulting to deny")
+            return False

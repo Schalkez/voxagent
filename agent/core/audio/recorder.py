@@ -113,6 +113,7 @@ class AudioRecorder:
     ) -> None:
         """Callback invoked by sounddevice for each audio chunk."""
         import contextlib
+
         if status:
             logger.warning("Audio stream status: %s", status)
         with contextlib.suppress(asyncio.QueueFull):

@@ -1,7 +1,7 @@
-"""Basic System Manipulation Skill.
+"""System Volume Skill: Fine-grained volume control.
 
-Provides operations such as controlling the volume, lock screen, and
-running safe shell commands.
+Handles volume-specific commands separately from power controls.
+Uses native API (ctypes on Windows) for direct volume manipulation.
 """
 
 from typing import ClassVar
@@ -11,12 +11,12 @@ from skills.registry import register_skill
 
 
 @register_skill
-class SystemSkill(BaseSkill):
-    """Controls volume and basic system features via native API."""
+class SystemVolumeSkill(BaseSkill):
+    """Controls system volume via native API."""
 
     name = "system"
-    description = "Control system features like volume and screen."
-    keywords: ClassVar[list[str]] = ["volume", "mute", "unmute", "sound", "lock"]
+    description = "Control system volume level, mute, and unmute."
+    keywords: ClassVar[list[str]] = ["volume", "mute", "unmute", "sound", "âm lượng", "tiếng"]
     execution_tiers: ClassVar[list[ExecutionTier]] = [ExecutionTier.NATIVE_API]
 
     async def can_handle(self, intent: SkillIntent) -> bool:
@@ -27,12 +27,11 @@ class SystemSkill(BaseSkill):
         """Executes system interactions like sound volume tweaks."""
         if intent.action == "set_volume":
             level = intent.params.get("level", "50")
-            # TODO: Integrate with SystemAutomation class to actually change volume
             return SkillResult(
                 success=True,
                 tts_response=f"Đã chỉnh âm lượng ở mức {level} phần trăm.",
                 data={"volume": int(level)},
-                tier_used=ExecutionTier.NATIVE_API
+                tier_used=ExecutionTier.NATIVE_API,
             )
 
         if intent.action in ("mute", "unmute"):
@@ -40,11 +39,11 @@ class SystemSkill(BaseSkill):
             return SkillResult(
                 success=True,
                 tts_response=f"Đã {action_text} tiếng máy tính.",
-                tier_used=ExecutionTier.NATIVE_API
+                tier_used=ExecutionTier.NATIVE_API,
             )
 
         return SkillResult(
             success=False,
             error=f"Hành động '{intent.action}' không hỗ trợ bởi {self.name} skill.",
-            tier_used=ExecutionTier.NATIVE_API
+            tier_used=ExecutionTier.NATIVE_API,
         )

@@ -20,103 +20,114 @@
 
 ### 1.1 Core Pipeline (`agent/core/`)
 
-> Backbone ears → brain → hands → mouth. Các file đã có skeleton, cần implement logic thật.
+> Backbone ears → brain → hands → mouth. Pipeline fully wired.
 
-- [ ] `ears.py` — Voice Input Pipeline
-  - [ ] Mic listener loop (sounddevice, low CPU)
-  - [ ] Wake word detector (openWakeWord integration)
-  - [ ] Push-to-talk hotkey fallback (keyboard lib)
-  - [ ] Voice Activity Detection (Silero VAD)
-  - [ ] Pipe audio → STT provider
+- [x] `ears.py` — Voice Input Pipeline
+  - [x] Mic listener loop (sounddevice, low CPU)
+  - [x] Wake word detector (openWakeWord integration)
+  - [x] Push-to-talk hotkey fallback (keyboard lib)
+  - [x] Voice Activity Detection (Silero VAD)
+  - [x] Pipe audio → STT provider
 - [x] `brain.py` — Intent Router & Orchestrator
   - [x] Tier 0: keyword exact matching (TIER_0_KEYWORDS dict)
   - [x] Tier 1–2: LLM-based intent classification
   - [x] Skill dispatcher (match intent → skill.execute())
   - [x] Fallback chain logic (ollama → groq → openai)
-- [ ] `hands.py` — Action Execution Engine
-  - [ ] Execution strategy selector (Tier A → D)
-  - [ ] Safety gates (DANGEROUS_ACTIONS confirm trước khi thực hiện)
-  - [ ] Keyboard/mouse abstraction (PyAutoGUI wrapper)
-- [ ] `mouth.py` — TTS Output
-  - [ ] TTS provider dispatcher
-  - [ ] Response template system (`TEMPLATES` dict)
-  - [ ] Audio playback (sounddevice)
-- [ ] `app.py` — Entry Point & Lifecycle
-  - [ ] Pipeline wiring: ears → brain → hands → mouth
-  - [ ] Graceful startup / shutdown
-  - [ ] CLI: `voxagent start`, `voxagent setup`
+- [x] `hands.py` — Action Execution Engine
+  - [x] Execution strategy selector (Tier A → D)
+  - [x] Safety gates (DANGEROUS_ACTIONS confirm trước khi thực hiện)
+  - [x] Voice confirmation (TTS prompt + STT response)
+- [x] `mouth.py` — TTS Output
+  - [x] TTS provider dispatcher
+  - [x] Response template system (`TEMPLATES` dict)
+  - [x] Audio playback (sounddevice)
+- [x] `app.py` — Entry Point & Lifecycle
+  - [x] Pipeline wiring: ears → brain → hands → mouth
+  - [x] Graceful startup / shutdown
+  - [x] CLI: `voxagent start`, `voxagent setup`
+- [x] `memory.py` — Database
+  - [x] aiosqlite connection + schema
+  - [x] Conversation CRUD
+  - [x] Preferences CRUD
 
 ### 1.2 Provider Implementations (`agent/providers/`)
 
-> Base interfaces ✅ done. Cần implement concrete providers.
+> All provider types implemented.
 
 - [x] Provider base interfaces (`base.py`)
 - [x] Provider registry (`registry.py`)
-- [x] LLM providers skeleton (OpenAI, Groq, Anthropic, Ollama)
+- [x] LLM providers (OpenAI, Groq, Anthropic, Ollama)
 - [x] API key storage in OS keyring (`keyring_manager.py`)
-- [ ] STT providers (`providers/stt/`)
-  - [ ] Whisper local (faster-whisper)
-  - [ ] OpenAI Whisper API
-- [ ] TTS providers (`providers/tts/`)
-  - [ ] Piper local (Vietnamese voice)
-  - [ ] Edge TTS (Microsoft, free)
-- [ ] LLM providers — functional chat + tool calling
-  - [ ] OpenAI: chat() + chat_with_tools()
-  - [ ] Groq: chat() + chat_with_tools()
-  - [ ] Ollama: chat() + chat_with_tools()
-  - [ ] Anthropic: chat() + chat_with_tools()
+- [x] STT providers (`providers/stt/`)
+  - [x] Whisper local (faster-whisper)
+  - [x] OpenAI Whisper API
+- [x] TTS providers (`providers/tts/`)
+  - [x] Edge TTS (Microsoft, free, Vietnamese voice)
+- [ ] TTS — Piper local (Vietnamese voice) — deferred to Phase 2
+- [x] LLM providers — functional chat + tool calling
+  - [x] OpenAI: chat() + chat_with_tools()
+  - [x] Groq: chat() + chat_with_tools()
+  - [x] Ollama: chat() + chat_with_tools()
+  - [x] Anthropic: chat() + chat_with_tools()
 
 ### 1.3 Skills — First 3 (`agent/skills/`)
 
-> `base.py` ✅ done. Cần implement 3 skills + manifests.
+> All 3 skills implemented.
 
 - [x] `base.py` — BaseSkill, SkillResult, SkillContext
-- [ ] `media_control.py` — play, pause, skip, volume
-  - [ ] Tier A: `ctypes` / `osascript` (native volume control)
-  - [ ] Tier D fallback: media keys via keyboard lib
-  - [ ] `media_control.json` manifest
-- [ ] `app_launcher.py` — mở/tắt application
-  - [ ] Tier A: `subprocess.Popen` / `os.startfile`
-  - [ ] App name → executable mapping
-  - [ ] `app_launcher.json` manifest
-- [ ] `system_control.py` — shutdown, restart, sleep, lock
-  - [ ] Tier A: `subprocess` os commands
-  - [ ] Safety gate integration (DANGEROUS_ACTIONS)
-  - [ ] `system_control.json` manifest
+- [x] `media_control.py` — play, pause, skip, volume
+  - [x] Tier A: ctypes media key simulation (Windows)
+  - [x] Tier D fallback: keyboard lib
+- [x] `app_launcher.py` — mở/tắt application
+  - [x] Tier A: `os.startfile` / `subprocess`
+  - [x] App name → executable mapping
+- [x] `system_control.py` — shutdown, restart, sleep, lock
+  - [x] Tier A: subprocess os commands (asyncio.to_thread)
+  - [x] Safety gate integration (DANGEROUS_ACTIONS)
 
-### 1.4 Platform Abstraction (`agent/platform/`)
-
-> `base.py` ✅ done. Cần implement Windows.
+### 1.4 Platform Abstraction (`agent/system/`)
 
 - [x] `base.py` — SystemAutomation interface
-- [ ] `windows.py` — Windows implementation
-  - [ ] `get_active_window()` — pywinauto/win32gui
-  - [ ] `find_element()` — UI automation element search
-  - [ ] `get_running_processes()` — psutil
-  - [ ] `read_notifications()` — Win32 notification center
+- [x] `windows.py` — Windows implementation
+  - [x] `get_active_window()` — ctypes Win32 API
+  - [x] `get_running_processes()` — psutil
+  - [x] `set_volume()` / `get_volume()` — media key approximation
+  - [/] `find_element()` — basic stub (full pywinauto in Phase 2)
+  - [-] `read_notifications()` — deferred (UWP API complexity)
 
 ### 1.5 Config System (`agent/core/`)
 
-- [x] `config.py` — YAML config loader (skeleton exists)
-- [ ] Config validation (Pydantic models)
-- [ ] 4 built-in profiles: `full_local`, `cloud_free`, `hybrid`, `budget_cloud`
+- [x] `config.py` — YAML config loader
+- [x] Config validation (dataclass types)
+- [x] 4 built-in profiles: `full_local`, `cloud_free`, `hybrid`, `budget_cloud`
 - [ ] Profile switching: `voxagent start --profile <name>`
 - [ ] `~/.voxagent/config.yaml` auto-generation on first run
 
 ### 1.6 System Tray (`agent/`)
 
-- [ ] `tray.py` — pystray system tray app
-  - [ ] Tray icon with status indicator
-  - [ ] Menu: Start/Stop listening, Settings, Quit
-  - [ ] Launch dashboard in browser
+- [x] `tray.py` — pystray system tray app
+  - [x] Tray icon with status indicator (green/gray)
+  - [x] Menu: Start/Stop listening, Settings, Quit
+  - [x] Launch dashboard in browser
 
 ### 1.7 CI/CD
 
-- [ ] GitHub Actions workflow (`.github/workflows/ci.yml`)
-  - [ ] Run `pytest` on push/PR
-  - [ ] Run `ruff check` + `mypy`
-  - [ ] Run `pnpm lint` + `pnpm build` for dashboard
-  - [ ] Coverage report upload
+- [x] GitHub Actions workflow (`.github/workflows/ci.yml`)
+  - [x] Run `pytest` on push/PR
+  - [x] Run `ruff check` + `mypy`
+  - [x] Run `pnpm lint` + `pnpm build` for dashboard
+  - [x] Coverage report upload
+
+### 1.8 Tests
+
+- [x] `test_hands.py` — Hands orchestration
+- [x] `test_brain.py` — Brain tier routing
+- [x] `test_mouth.py` — TTS templates + speak
+- [x] `test_memory.py` — Database CRUD
+- [x] `test_config.py` — Config load/save/profiles
+- [x] `test_providers.py` — Registry + fallback chain
+- [x] `test_skills.py` — All 3 skills + system volume
+- [x] `test_api.py` — FastAPI endpoints
 
 ---
 
@@ -152,16 +163,11 @@
   - [x] Device settings UI (audio input/output, display, wake word)
   - [-] Profile selector
   - [x] Backend: `/api/settings` GET/PUT
-- [ ] Autopilot (`/autopilot`) — fullstack
-  - [ ] Task list, trigger config, execution log
-  - [ ] Backend: `/api/autopilot/tasks` CRUD
-- [ ] Memory (`/memory`) — fullstack
-  - [ ] Conversation history viewer
-  - [ ] Preference editor
-  - [ ] Backend: `/api/memory/conversations`, `/api/memory/preferences`
-- [ ] Dashboard Home (`/`) — overview
-  - [ ] System status overview
-  - [ ] Active skills count, last command, uptime
+- [x] Autopilot (`/autopilot`) — preview stub
+  - [x] Coming Soon UI with mock task list
+- [x] Memory (`/memory`) — preview stub
+  - [x] Coming Soon UI with mock conversation history
+- [ ] Dashboard Home (`/`) — overview (has HeroCard, BentoGrid, TerminalLog)
 
 ### 1.D.3 Code Quality
 
@@ -177,7 +183,7 @@
 - [ ] LLM providers: DeepSeek, Mistral, OpenRouter
 - [ ] Tier 1–2 smart routing (LLM-based complexity classification)
 - [ ] Skills: `terminal.py`, `file_manager.py`, `browser_control.py`
-- [ ] `memory.py` — Conversation memory (SQLite + SQLCipher encryption)
+- [ ] `memory.py` — Conversation memory encryption (SQLCipher)
 - [ ] Multi-step action planning (brain)
 - [ ] Fallback chain (auto-switch provider khi fail)
 - [ ] Skill permission system — runtime enforcement

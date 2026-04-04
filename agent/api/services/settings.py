@@ -18,7 +18,10 @@ def get_system_settings() -> dict[str, Any]:
     config = load_config()
     return asdict(config)
 
-def update_system_settings(stt: dict[str, Any], tts: dict[str, Any], wake_word: dict[str, Any], security: dict[str, Any]) -> dict[str, Any]:
+
+def update_system_settings(
+    stt: dict[str, Any], tts: dict[str, Any], wake_word: dict[str, Any], security: dict[str, Any]
+) -> dict[str, Any]:
     """Merge updates safely into the system configuration."""
     config = load_config()
 
@@ -38,8 +41,14 @@ def update_system_settings(stt: dict[str, Any], tts: dict[str, Any], wake_word: 
         sensitivity=float(wake_word.get("sensitivity", config.wake_word.sensitivity)),
     )
     new_sec = SecurityConfig(
-        confirm_dangerous_actions=bool(security.get("confirm_dangerous_actions", config.security.confirm_dangerous_actions)),
-        max_file_delete_without_confirm=int(security.get("max_file_delete_without_confirm", config.security.max_file_delete_without_confirm)),
+        confirm_dangerous_actions=bool(
+            security.get("confirm_dangerous_actions", config.security.confirm_dangerous_actions)
+        ),
+        max_file_delete_without_confirm=int(
+            security.get(
+                "max_file_delete_without_confirm", config.security.max_file_delete_without_confirm
+            )
+        ),
     )
 
     updated_config = replace(config, stt=new_stt, tts=new_tts, wake_word=new_ww, security=new_sec)

@@ -7,10 +7,12 @@ from api.services.routing import get_routing_config, update_routing_config
 
 router = APIRouter(prefix="/api/routing", tags=["routing"])
 
+
 @router.get("")
 async def get_routing_route() -> dict[str, object]:
     """Get the current tier routing configuration."""
     return get_routing_config()
+
 
 @router.put("")
 async def update_routing_route(body: RoutingConfigRequest) -> dict[str, object]:

@@ -13,7 +13,8 @@ def get_provider_registry(request: Request) -> ProviderRegistry:
         raise VoxAPIException(
             message="Provider Registry is not initialized.",
             status_code=500,
-            code="internal_server_error"
+            code="internal_server_error",
         )
     from typing import cast
+
     return cast(ProviderRegistry, registry)

@@ -50,6 +50,7 @@ async def check_provider_health(registry: ProviderRegistry, provider_id: str) ->
         # Special casing Ollama for models
         if provider_id == "ollama" and ok:
             from providers.ollama_provider import OllamaProvider
+
             if isinstance(provider, OllamaProvider):
                 models = await provider.list_models()
                 message = f"Ping 200 OK - {len(models)} models found ({', '.join(models[:3])})"

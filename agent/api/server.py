@@ -24,6 +24,7 @@ logger = logging.getLogger("voxagent.api")
 
 # ── Lifespan & Dependencies ──
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Manage the application lifecycle and globals."""
@@ -33,21 +34,25 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Register providers dynamically or statically
     try:
         from providers.openai_provider import OpenAIProvider
+
         registry.register_llm("openai", OpenAIProvider)
     except ImportError:
         pass
     try:
         from providers.groq_provider import GroqProvider
+
         registry.register_llm("groq", GroqProvider)
     except ImportError:
         pass
     try:
         from providers.anthropic_provider import AnthropicProvider
+
         registry.register_llm("anthropic", AnthropicProvider)
     except ImportError:
         pass
     try:
         from providers.ollama_provider import OllamaProvider
+
         registry.register_llm("ollama", OllamaProvider)
     except ImportError:
         pass
@@ -55,6 +60,30 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Attach to app state
     app.state.provider_registry = registry
     logger.info("Provider registry initialized with models.")
+
+    # Register STT providers
+    try:
+        from providers.stt.whisper_local import WhisperLocalProvider
+
+        registry.register_stt("whisper_local", WhisperLocalProvider)
+    except ImportError:
+        pass
+    try:
+        from providers.stt.openai_whisper import OpenAIWhisperProvider
+
+        registry.register_stt("openai_whisper", OpenAIWhisperProvider)
+    except ImportError:
+        pass
+
+    # Register TTS providers
+    try:
+        from providers.tts.edge_tts_provider import EdgeTTSProvider
+
+        registry.register_tts("edge_tts", EdgeTTSProvider)
+    except ImportError:
+        pass
+
+    logger.info("STT/TTS providers registered.")
 
     yield  # Yield control to FastAPI to serve requests
 
@@ -74,6 +103,7 @@ app = FastAPI(
 
 # ── Exception Handlers ──
 
+
 @app.exception_handler(VoxAPIException)
 async def vox_api_exception_handler(_: Request, exc: VoxAPIException) -> JSONResponse:
     """Global handler for VoxAgent domain exceptions."""
@@ -86,6 +116,7 @@ async def vox_api_exception_handler(_: Request, exc: VoxAPIException) -> JSONRes
             "details": exc.details,
         },
     )
+
 
 # ── CORS Middleware ──
 
@@ -111,6 +142,7 @@ app.include_router(settings.router)
 
 
 # ── Entry Point ──
+
 
 def main() -> None:
     """Start the management API server."""

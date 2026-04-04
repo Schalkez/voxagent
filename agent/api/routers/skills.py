@@ -7,10 +7,12 @@ from api.services.skills import get_all_skills, toggle_skill_state
 
 router = APIRouter(prefix="/api/skills", tags=["skills"])
 
+
 @router.get("")
 async def list_skills_route() -> list[dict[str, object]]:
     """List all registered skills."""
     return get_all_skills()
+
 
 @router.post("/{skill_id}/toggle")
 async def toggle_skill_route(skill_id: str, body: ToggleSkillRequest) -> dict[str, object]:

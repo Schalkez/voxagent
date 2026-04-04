@@ -186,7 +186,9 @@ class Ears:
         # Step 3: Transcribe
         return await self._transcribe_frames(frames)
 
-    async def push_to_talk(self, duration_s: float = 5.0) -> TranscribeResult | EmptyTranscribeResult:
+    async def push_to_talk(
+        self, duration_s: float = 5.0
+    ) -> TranscribeResult | EmptyTranscribeResult:
         """Record for a fixed duration and transcribe.
 
         Args:

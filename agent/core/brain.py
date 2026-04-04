@@ -19,6 +19,7 @@ from skills.base import BaseSkill
 
 logger = logging.getLogger("voxagent.brain")
 
+
 class Tier(IntEnum):
     """LLM routing tiers, ordered by cost/latency."""
 
@@ -53,7 +54,9 @@ class Brain:
     Uses a cascading strategy: try the cheapest tier first, escalate if needed.
     """
 
-    def __init__(self, registry: ProviderRegistry, skills: list[BaseSkill], routing_config: dict[str, Any]) -> None:
+    def __init__(
+        self, registry: ProviderRegistry, skills: list[BaseSkill], routing_config: dict[str, Any]
+    ) -> None:
         """Initialize the Brain orchestrator.
 
         Args:
@@ -127,10 +130,7 @@ class Brain:
 
         # 3. System Prompt
         sys_prompt = "You are VoxAgent, an AI desktop assistant. Analyze the user's voice command and select the appropriate tool (skill) to execute. Always use tool calling."
-        messages = [
-            Message(role="system", content=sys_prompt),
-            Message(role="user", content=text)
-        ]
+        messages = [Message(role="system", content=sys_prompt), Message(role="user", content=text)]
 
         # 4. Inference
         try:
@@ -193,19 +193,24 @@ class Brain:
             tools.append(tool)
 
         # Add fallback
-        tools.append({
-            "type": "function",
-            "function": {
-                "name": "unknown",
-                "description": "Use this if the user command doesn't match any known skill.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "action": {"type": "string"},
-                        "message": {"type": "string", "description": "Direct conversation response"}
+        tools.append(
+            {
+                "type": "function",
+                "function": {
+                    "name": "unknown",
+                    "description": "Use this if the user command doesn't match any known skill.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "action": {"type": "string"},
+                            "message": {
+                                "type": "string",
+                                "description": "Direct conversation response",
+                            },
+                        },
+                        "required": ["message"],
                     },
-                    "required": ["message"]
-                }
+                },
             }
-        })
+        )
         return tools

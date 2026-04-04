@@ -16,6 +16,11 @@ dependencies = [
     "pyyaml>=6.0",
     "fastapi>=0.115",
     "uvicorn[standard]>=0.34",
+    "edge-tts>=6.1",
+    "pydub>=0.25",
+    "psutil>=5.9",
+    "pystray>=0.19",
+    "Pillow>=10.0",
 ]
 
 [project.optional-dependencies]
@@ -34,6 +39,9 @@ audio = [
     "openwakeword>=0.6",
     "silero-vad>=5.1",
     "onnxruntime>=1.19",
+]
+stt = [
+    "faster-whisper>=1.0",
 ]
 
 [project.scripts]
@@ -100,7 +108,11 @@ module = [
     "openwakeword.*",
     "silero_vad.*",
     "onnxruntime.*",
-    "torch"
+    "torch",
+    "faster_whisper.*",
+    "edge_tts.*",
+    "pydub.*",
+    "psutil.*",
 ]
 ignore_missing_imports = true
 
