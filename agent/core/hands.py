@@ -8,20 +8,9 @@ Execution Strategy (mandatory priority order):
 """
 
 from dataclasses import dataclass
-from enum import Enum
 
-
-class ExecutionTier(Enum):
-    """Action execution tiers, ordered by preference.
-
-    Always use the highest tier available. Tier D (mouse/keyboard)
-    requires explicit justification in the skill manifest.
-    """
-
-    NATIVE_API = "native_api"
-    APP_API = "app_api"
-    UI = "ui"
-    KEYBOARD = "keyboard"
+from skills.base import ExecutionTier, SkillIntent, SkillResult
+from skills.registry import registry as skill_registry
 
 
 @dataclass(frozen=True)
@@ -61,24 +50,53 @@ class Hands:
     require voice confirmation before execution.
     """
 
-    async def execute(self, skill_name: str, action: str, params: dict[str, str]) -> ActionResult:
-        """Execute an action, trying execution tiers in priority order.
+    async def execute(self, intent: SkillIntent) -> SkillResult:
+        """Execute an action using the loaded skills.
 
         Args:
-            skill_name: Name of the skill requesting execution.
-            action: The specific action to perform.
-            params: Parameters for the action.
+            intent: The parsed SkillIntent from the Brain to execute.
 
         Returns:
-            ActionResult with success status and optional output/error.
+            SkillResult with success status and optional output/error/tts.
         """
-        if action in DANGEROUS_ACTIONS:
-            confirmed = await self._require_confirmation(action, str(params))
+        if intent.action in DANGEROUS_ACTIONS:
+            confirmed = await self._require_confirmation(intent.action, str(intent.params))
             if not confirmed:
-                return ActionResult(success=False, error="User cancelled dangerous action")
+                return SkillResult(
+                    success=False,
+                    error="User cancelled dangerous action",
+                    cancelled=True
+                )
 
-        # Placeholder — will dispatch to skill's execution tiers
-        return ActionResult(success=False, error="Not implemented")
+        # 1. Fetch skill from registry
+        try:
+            skill = skill_registry.get_skill(intent.skill_name)
+        except Exception as e:
+            return SkillResult(
+                success=False,
+                error=str(e),
+                tts_response="Tôi không tìm thấy kỹ năng này."
+            )
+
+        # 2. Check can handle
+        if not await skill.can_handle(intent):
+            return SkillResult(
+                success=False,
+                error="Skill assigned could not handle the intent.",
+            )
+
+        # 3. Execute
+        # In a real environment, Hands would iterate over `skill.execution_tiers`
+        # and provide the necessary implementation objects to the skill execution.
+        try:
+            result = await skill.execute(intent)
+            return result
+        except Exception as exec_err:
+            return SkillResult(
+                success=False,
+                error=f"Execution error: {exec_err}",
+                tts_response="Đã có lỗi xảy ra trong quá trình thao tác."
+            )
 
     async def _require_confirmation(self, action: str, description: str) -> bool:
         """Request voice confirmation for dangerous actions.
