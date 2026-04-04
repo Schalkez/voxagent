@@ -28,11 +28,11 @@
   - [ ] Push-to-talk hotkey fallback (keyboard lib)
   - [ ] Voice Activity Detection (Silero VAD)
   - [ ] Pipe audio → STT provider
-- [ ] `brain.py` — Intent Router & Orchestrator
-  - [ ] Tier 0: keyword exact matching (TIER_0_KEYWORDS dict)
-  - [ ] Tier 1–2: LLM-based intent classification
-  - [ ] Skill dispatcher (match intent → skill.execute())
-  - [ ] Fallback chain logic (ollama → groq → openai)
+- [x] `brain.py` — Intent Router & Orchestrator
+  - [x] Tier 0: keyword exact matching (TIER_0_KEYWORDS dict)
+  - [x] Tier 1–2: LLM-based intent classification
+  - [x] Skill dispatcher (match intent → skill.execute())
+  - [x] Fallback chain logic (ollama → groq → openai)
 - [ ] `hands.py` — Action Execution Engine
   - [ ] Execution strategy selector (Tier A → D)
   - [ ] Safety gates (DANGEROUS_ACTIONS confirm trước khi thực hiện)
@@ -148,10 +148,10 @@
   - [x] SkillCard, AddSkillCard, SkillsFooter organisms
   - [x] useSkills + useToggleSkill hooks
   - [x] Backend: `/api/skills`, `/api/skills/{id}/toggle`
-- [ ] Settings (`/settings`) — fullstack
-  - [ ] Device settings UI (audio input/output, display, wake word)
-  - [ ] Profile selector
-  - [ ] Backend: `/api/settings` GET/PUT
+- [x] Settings (`/settings`) — fullstack
+  - [x] Device settings UI (audio input/output, display, wake word)
+  - [-] Profile selector
+  - [x] Backend: `/api/settings` GET/PUT
 - [ ] Autopilot (`/autopilot`) — fullstack
   - [ ] Task list, trigger config, execution log
   - [ ] Backend: `/api/autopilot/tasks` CRUD
