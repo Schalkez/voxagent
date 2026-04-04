@@ -1,6 +1,7 @@
 """Routing API Router."""
 
 from fastapi import APIRouter
+
 from api.schemas.routing import RoutingConfigRequest
 from api.services.routing import get_routing_config, update_routing_config
 

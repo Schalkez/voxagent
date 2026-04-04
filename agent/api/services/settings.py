@@ -1,8 +1,17 @@
 """Settings business logic."""
 
-from typing import Any
 from dataclasses import asdict, replace
-from core.config import load_config, save_config, STTConfig, TTSConfig, WakeWordConfig, SecurityConfig
+from typing import Any
+
+from core.config import (
+    SecurityConfig,
+    STTConfig,
+    TTSConfig,
+    WakeWordConfig,
+    load_config,
+    save_config,
+)
+
 
 def get_system_settings() -> dict[str, Any]:
     """Get system settings mapped to dict."""
@@ -32,8 +41,8 @@ def update_system_settings(stt: dict[str, Any], tts: dict[str, Any], wake_word: 
         confirm_dangerous_actions=bool(security.get("confirm_dangerous_actions", config.security.confirm_dangerous_actions)),
         max_file_delete_without_confirm=int(security.get("max_file_delete_without_confirm", config.security.max_file_delete_without_confirm)),
     )
-    
+
     updated_config = replace(config, stt=new_stt, tts=new_tts, wake_word=new_ww, security=new_sec)
     save_config(updated_config)
-    
+
     return asdict(updated_config)

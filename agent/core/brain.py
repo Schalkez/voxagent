@@ -8,6 +8,7 @@ Routes incoming text through a tiered system:
 """
 
 import json
+import logging
 from dataclasses import dataclass
 from enum import IntEnum
 from typing import Any
@@ -16,6 +17,7 @@ from providers.base import Message
 from providers.registry import ProviderRegistry
 from skills.base import BaseSkill
 
+logger = logging.getLogger("voxagent.brain")
 
 class Tier(IntEnum):
     """LLM routing tiers, ordered by cost/latency."""
@@ -111,9 +113,9 @@ class Brain:
             tier_config = {"provider": "ollama", "model": "llama3.1:8b"}
         else:
             tier_config = tiers[tier_idx]
-            
+
         provider_name = str(tier_config.get("provider", "ollama")).lower()
-        
+
         try:
             llm = self.registry.get_llm(provider_name)
         except KeyError:
@@ -135,7 +137,7 @@ class Brain:
             response = await llm.chat_with_tools(messages=messages, tools=tools)
             tool_name = str(response.get("tool", ""))
             args = response.get("result", {})
-            
+
             if not isinstance(args, dict):
                 # Provider might have returned a JSON string instead of dict
                 try:
@@ -146,7 +148,7 @@ class Brain:
             if tool_name in self.skills:
                 action = str(args.get("action", "default"))
                 params = {str(k): str(v) for k, v in args.items() if k != "action"}
-                
+
                 return Intent(
                     skill_name=tool_name,
                     action=action,
@@ -154,10 +156,10 @@ class Brain:
                     confidence=0.9,
                     tier_used=target_tier,
                 )
-                
-        except Exception:
+
+        except Exception as e:
             # On failure, return unknown intent instead of crashing the pipeline
-            pass
+            logger.error("Failed to extract intent from LLM response: %s", e)
 
         return Intent(
             skill_name="unknown",
@@ -169,9 +171,9 @@ class Brain:
 
     def _build_tools_schema(self) -> list[dict[str, object]]:
         """Convert loaded skills to OpenAI-compatible Tools JSON Schema."""
-        tools = []
+        tools: list[dict[str, object]] = []
         for skill_name, skill in self.skills.items():
-            tool = {
+            tool: dict[str, Any] = {
                 "type": "function",
                 "function": {
                     "name": skill_name,
@@ -189,7 +191,7 @@ class Brain:
                 },
             }
             tools.append(tool)
-            
+
         # Add fallback
         tools.append({
             "type": "function",

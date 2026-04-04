@@ -1,6 +1,7 @@
 """Skills API Router."""
 
 from fastapi import APIRouter, HTTPException
+
 from api.schemas.skills import ToggleSkillRequest
 from api.services.skills import get_all_skills, toggle_skill_state
 

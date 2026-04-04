@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
@@ -46,7 +46,7 @@ class AudioRecorder:
         self._sample_rate = sample_rate
         self._channels = channels
         self._chunk_samples = chunk_samples
-        self._stream: object | None = None
+        self._stream: Any | None = None
         self._audio_queue: asyncio.Queue[np.ndarray] = asyncio.Queue()
 
     @property
@@ -101,7 +101,7 @@ class AudioRecorder:
                 self._audio_queue.get(),
                 timeout=AUDIO_QUEUE_TIMEOUT_S,
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return None
 
     def _on_audio_chunk(
@@ -112,12 +112,11 @@ class AudioRecorder:
         status: object,
     ) -> None:
         """Callback invoked by sounddevice for each audio chunk."""
+        import contextlib
         if status:
             logger.warning("Audio stream status: %s", status)
-        try:
+        with contextlib.suppress(asyncio.QueueFull):
             self._audio_queue.put_nowait(indata.copy())
-        except asyncio.QueueFull:
-            pass  # Drop frames if queue is full
 
     def _drain_queue(self) -> None:
         """Clear any stale audio from the queue."""

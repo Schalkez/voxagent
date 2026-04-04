@@ -1,6 +1,7 @@
 """Settings API Router."""
 
 from fastapi import APIRouter
+
 from api.schemas.settings import UpdateSettingsRequest
 from api.services.settings import get_system_settings, update_system_settings
 

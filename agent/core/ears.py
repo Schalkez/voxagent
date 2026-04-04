@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from core.audio.converter import AudioConverter
-from core.audio.recorder import AudioRecorder, CHUNK_DURATION_MS
+from core.audio.recorder import CHUNK_DURATION_MS, AudioRecorder
 from core.audio.vad import VoiceActivityDetector
 from core.audio.wake_word import WakeWordDetector
 

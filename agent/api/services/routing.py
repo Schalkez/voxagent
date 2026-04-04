@@ -1,7 +1,9 @@
 """Routing business logic."""
 
 from typing import Any
+
 from api.state.store import routing_config_state
+
 
 def get_routing_config() -> dict[str, Any]:
     """Retrieve the routing configuration from state."""

@@ -1,7 +1,9 @@
 """Skills business logic."""
 
 from typing import Any
+
 from api.state.store import skills_state
+
 
 def get_all_skills() -> list[dict[str, Any]]:
     """Get all skills from state."""

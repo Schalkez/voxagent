@@ -6,16 +6,18 @@ API keys, and system configuration.
 
 from __future__ import annotations
 
-import os
-import uvicorn
 import logging
+import os
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
 
-from api.routers import providers, routing, skills, settings
+import uvicorn
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
 from api.exceptions import VoxAPIException
+from api.routers import providers, routing, settings, skills
 from providers.registry import ProviderRegistry
 
 logger = logging.getLogger("voxagent.api")
@@ -23,7 +25,7 @@ logger = logging.getLogger("voxagent.api")
 # ── Lifespan & Dependencies ──
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Manage the application lifecycle and globals."""
     # 1. Initialize Provider Registry
     registry = ProviderRegistry()
@@ -73,7 +75,7 @@ app = FastAPI(
 # ── Exception Handlers ──
 
 @app.exception_handler(VoxAPIException)
-async def vox_api_exception_handler(_: Request, exc: VoxAPIException):
+async def vox_api_exception_handler(_: Request, exc: VoxAPIException) -> JSONResponse:
     """Global handler for VoxAgent domain exceptions."""
     return JSONResponse(
         status_code=exc.status_code,

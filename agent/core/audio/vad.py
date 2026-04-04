@@ -7,6 +7,7 @@ Uses Silero VAD (ONNX) with energy-based fallback.
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 import numpy as np
 
@@ -39,7 +40,7 @@ class VoiceActivityDetector:
     ) -> None:
         self._speech_threshold = speech_threshold
         self._energy_threshold = energy_threshold
-        self._model: object | None = None
+        self._model: Any | None = None
 
     def load(self) -> None:
         """Load the Silero VAD model via ONNX Runtime.
@@ -84,9 +85,13 @@ class VoiceActivityDetector:
             # deps-lazy-load: torch only needed for Silero VAD
             import torch
 
+            model = self._model
+            if model is None:
+                return self._energy_detect(audio_chunk)
+
             audio_float = audio_chunk.flatten().astype(np.float32) / 32768.0
             audio_tensor = torch.from_numpy(audio_float)
-            confidence = self._model(audio_tensor, SAMPLE_RATE).item()
+            confidence: float = model(audio_tensor, SAMPLE_RATE).item()
             return confidence > self._speech_threshold
         except (RuntimeError, ValueError, OSError):
             logger.debug("VAD inference error — falling back to energy detection")

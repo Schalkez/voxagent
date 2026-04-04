@@ -1,15 +1,16 @@
 """Providers API Router."""
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends, HTTPException
+
+from api.deps import get_provider_registry
 from api.schemas.providers import SaveKeyRequest
 from api.services.providers import (
-    get_all_providers,
-    store_provider_key,
     check_provider_health,
+    get_all_providers,
     get_provider_usage,
+    store_provider_key,
 )
 from api.state.store import PROVIDER_META
-from api.deps import get_provider_registry
 from providers.registry import ProviderRegistry
 
 router = APIRouter(prefix="/api/providers", tags=["providers"])

@@ -1,8 +1,10 @@
 """Dependency Injection for FastAPI endpoints."""
 
 from fastapi import Request
-from providers.registry import ProviderRegistry
+
 from api.exceptions import VoxAPIException
+from providers.registry import ProviderRegistry
+
 
 def get_provider_registry(request: Request) -> ProviderRegistry:
     """Extract the initialized ProviderRegistry from the application state."""
@@ -13,4 +15,5 @@ def get_provider_registry(request: Request) -> ProviderRegistry:
             status_code=500,
             code="internal_server_error"
         )
-    return registry
+    from typing import cast
+    return cast(ProviderRegistry, registry)

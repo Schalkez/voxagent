@@ -1,7 +1,9 @@
 """Provider schemas for the API."""
 
 from dataclasses import dataclass
+
 from pydantic import BaseModel
+
 
 class SaveKeyRequest(BaseModel):
     """Request body for saving an API key."""

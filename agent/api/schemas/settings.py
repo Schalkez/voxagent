@@ -1,7 +1,9 @@
 """Settings schemas for the API."""
 
-from pydantic import BaseModel
 from typing import Any
+
+from pydantic import BaseModel
+
 
 class UpdateSettingsRequest(BaseModel):
     """Request body for updating settings."""
