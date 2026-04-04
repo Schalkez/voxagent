@@ -85,6 +85,21 @@ class TTSConfig:
 
 
 @dataclass(frozen=True)
+class AudioConfig:
+    """Audio input configuration.
+
+    Attributes:
+        sample_rate: Audio sample rate in Hz (default 16000 for speech).
+        channels: Number of audio channels (1=mono).
+        chunk_duration_ms: Duration of each audio chunk in milliseconds.
+    """
+
+    sample_rate: int = 16_000
+    channels: int = 1
+    chunk_duration_ms: int = 80
+
+
+@dataclass(frozen=True)
 class WakeWordConfig:
     """Wake word detection configuration."""
     engine: str = "openwakeword"
@@ -107,6 +122,7 @@ class VoxAgentConfig:
         stt: Speech-to-Text settings.
         tts: Text-to-Speech settings.
         wake_word: Wake word detection settings.
+        audio: Audio input settings (sample rate, channels, etc.).
         security: Security settings.
     """
 
@@ -115,6 +131,7 @@ class VoxAgentConfig:
     stt: STTConfig = field(default_factory=STTConfig)
     tts: TTSConfig = field(default_factory=TTSConfig)
     wake_word: WakeWordConfig = field(default_factory=WakeWordConfig)
+    audio: AudioConfig = field(default_factory=AudioConfig)
     security: SecurityConfig = field(default_factory=SecurityConfig)
 
 

@@ -30,6 +30,11 @@ dev = [
     "interrogate>=1.7",
     "vulture>=2.13",
 ]
+audio = [
+    "openwakeword>=0.6",
+    "silero-vad>=5.1",
+    "onnxruntime>=1.19",
+]
 
 [project.scripts]
 voxagent = "core.app:main"
@@ -89,7 +94,7 @@ no_implicit_optional = true
 exclude = ["tests/", "docs/", "dashboard/"]
 
 [[tool.mypy.overrides]]
-module = ["sounddevice.*", "pystray.*", "pyautogui.*"]
+module = ["sounddevice.*", "pystray.*", "pyautogui.*", "openwakeword.*", "silero_vad.*", "onnxruntime.*"]
 ignore_missing_imports = true
 
 # ── PYTEST ────────────────────────────────────────
