@@ -83,6 +83,19 @@ class TTSConfig:
     speed: float = 1.0
 
 
+@dataclass(frozen=True)
+class WakeWordConfig:
+    """Wake word detection configuration."""
+    engine: str = "openwakeword"
+    phrase: str = "hey vox"
+    sensitivity: float = 0.7
+
+@dataclass(frozen=True)
+class SecurityConfig:
+    """Security and safety configuration."""
+    confirm_dangerous_actions: bool = True
+    max_file_delete_without_confirm: int = 0
+
 @dataclass
 class VoxAgentConfig:
     """Root configuration object for VoxAgent.
@@ -92,12 +105,16 @@ class VoxAgentConfig:
         routing: Tier routing configuration.
         stt: Speech-to-Text settings.
         tts: Text-to-Speech settings.
+        wake_word: Wake word detection settings.
+        security: Security settings.
     """
 
     providers: dict[str, ProviderConfig] = field(default_factory=dict)
     routing: RoutingConfig = field(default_factory=RoutingConfig)
     stt: STTConfig = field(default_factory=STTConfig)
     tts: TTSConfig = field(default_factory=TTSConfig)
+    wake_word: WakeWordConfig = field(default_factory=WakeWordConfig)
+    security: SecurityConfig = field(default_factory=SecurityConfig)
 
 
 def _parse_provider(data: dict[str, Any]) -> ProviderConfig:
@@ -158,9 +175,11 @@ def load_config(config_dir: Path | None = None) -> VoxAgentConfig:
         fallback_chain=routing_raw.get("fallback_chain", []),
     )
 
-    # Parse STT / TTS
+    # Parse STT / TTS / WakeWord / Security
     stt_raw = raw.get("stt", {})
     tts_raw = raw.get("tts", {})
+    ww_raw = raw.get("wake_word", {})
+    sec_raw = raw.get("security", {})
 
     return VoxAgentConfig(
         providers=providers,
@@ -175,4 +194,32 @@ def load_config(config_dir: Path | None = None) -> VoxAgentConfig:
             voice=tts_raw.get("voice", "vi-female"),
             speed=float(tts_raw.get("speed", 1.0)),
         ),
+        wake_word=WakeWordConfig(
+            engine=ww_raw.get("engine", "openwakeword"),
+            phrase=ww_raw.get("phrase", "hey vox"),
+            sensitivity=float(ww_raw.get("sensitivity", 0.7)),
+        ),
+        security=SecurityConfig(
+            confirm_dangerous_actions=bool(sec_raw.get("confirm_dangerous_actions", True)),
+            max_file_delete_without_confirm=int(sec_raw.get("max_file_delete_without_confirm", 0)),
+        )
     )
+
+from dataclasses import asdict
+
+def save_config(config: VoxAgentConfig, config_dir: Path | None = None) -> None:
+    """Save VoxAgent configuration to YAML file.
+
+    Args:
+        config: The VoxAgentConfig instance to save.
+        config_dir: Directory containing config.yaml.
+            Defaults to ~/.voxagent/.
+    """
+    if config_dir is None:
+        config_dir = _default_config_path()
+
+    config_dir.mkdir(parents=True, exist_ok=True)
+    config_file = config_dir / "config.yaml"
+
+    with open(config_file, "w", encoding="utf-8") as f:
+        yaml.safe_dump(asdict(config), f, default_flow_style=False, sort_keys=False, allow_unicode=True)
