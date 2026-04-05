@@ -6,6 +6,7 @@ and 90+ other languages with configurable model sizes.
 
 from __future__ import annotations
 
+import asyncio
 import io
 import logging
 import time
@@ -73,16 +74,18 @@ class WhisperLocalProvider(STTProvider):
 
         start_ms = time.monotonic()
 
-        audio_file = io.BytesIO(audio)
-        segments, info = self._model.transcribe(
-            audio_file,
-            language=language,
-            beam_size=5,
-            vad_filter=True,
-        )
+        def _transcribe_blocking() -> tuple[str, Any]:
+            audio_file = io.BytesIO(audio)
+            segments, info = self._model.transcribe(
+                audio_file,
+                language=language,
+                beam_size=5,
+                vad_filter=True,
+            )
+            text_parts = [segment.text.strip() for segment in segments]
+            return " ".join(text_parts), info
 
-        text_parts = [segment.text.strip() for segment in segments]
-        text = " ".join(text_parts)
+        text, info = await asyncio.to_thread(_transcribe_blocking)
         duration_ms = int((time.monotonic() - start_ms) * 1000)
 
         confidence = getattr(info, "language_probability", 0.0)

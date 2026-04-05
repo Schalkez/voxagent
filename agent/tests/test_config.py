@@ -1,21 +1,21 @@
 """Tests for the configuration system."""
 
-import pytest
 from pathlib import Path
 
+import pytest
+
 from core.config import (
-    VoxAgentConfig,
+    AudioConfig,
     ProviderConfig,
-    RoutingConfig,
+    SecurityConfig,
     STTConfig,
     TTSConfig,
-    AudioConfig,
+    VoxAgentConfig,
     WakeWordConfig,
-    SecurityConfig,
-    load_config,
-    save_config,
     list_profiles,
+    load_config,
     load_profile,
+    save_config,
 )
 
 
@@ -118,7 +118,7 @@ class TestProfiles:
     def test_list_profiles_has_descriptions(self) -> None:
         """Each profile should have a description."""
         profiles = list_profiles()
-        for name, desc in profiles.items():
+        for _name, desc in profiles.items():
             assert isinstance(desc, str)
             assert len(desc) > 10
 

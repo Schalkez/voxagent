@@ -13,6 +13,7 @@ import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from api.exceptions import VoxAPIException
 from skills.base import ExecutionTier, SkillIntent, SkillResult
 from skills.registry import registry as skill_registry
 
@@ -99,7 +100,7 @@ class Hands:
         # 1. Fetch skill from registry
         try:
             skill = skill_registry.get_skill(intent.skill_name)
-        except Exception as e:
+        except (VoxAPIException, KeyError, ValueError) as e:
             return SkillResult(
                 success=False,
                 error=str(e),

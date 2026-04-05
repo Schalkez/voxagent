@@ -7,15 +7,20 @@ Routes incoming text through a tiered system:
 - Tier 3: Large LLM for complex tasks (32B+/cloud)
 """
 
+from __future__ import annotations
+
 import json
 import logging
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from providers.base import Message
-from providers.registry import ProviderRegistry
+from providers.registry import ProviderNotFoundError, ProviderRegistry
 from skills.base import BaseSkill
+
+if TYPE_CHECKING:
+    from core.config import VoxAgentConfig
 
 logger = logging.getLogger("voxagent.brain")
 
@@ -55,18 +60,34 @@ class Brain:
     """
 
     def __init__(
-        self, registry: ProviderRegistry, skills: list[BaseSkill], routing_config: dict[str, Any]
+        self,
+        registry: ProviderRegistry,
+        skills: list[BaseSkill],
+        routing_config: dict[str, Any] | None = None,
+        config: VoxAgentConfig | None = None,
     ) -> None:
         """Initialize the Brain orchestrator.
 
         Args:
             registry: The LLM Provider registry.
             skills: List of registered BaseSkill objects.
-            routing_config: Tier-based routing configurations.
+            routing_config: Tier-based routing configurations (legacy).
+            config: Full VoxAgentConfig (preferred). Overrides routing_config.
         """
         self.registry = registry
         self.skills = {skill.name: skill for skill in skills}
-        self.routing_config = routing_config
+
+        if config is not None:
+            # Extract routing tiers from config into dict format
+            self.routing_config: dict[str, Any] = {
+                "tiers": [
+                    {"provider": config.routing.tier_1.provider, "model": config.routing.tier_1.model},
+                    {"provider": config.routing.tier_2.provider, "model": config.routing.tier_2.model},
+                    {"provider": config.routing.tier_3.provider, "model": config.routing.tier_3.model},
+                ],
+            }
+        else:
+            self.routing_config = routing_config or {}
 
     async def process(self, text: str) -> Intent:
         """Route text through tier system and return structured intent.
@@ -121,7 +142,7 @@ class Brain:
 
         try:
             llm = self.registry.get_llm(provider_name)
-        except KeyError:
+        except ProviderNotFoundError:
             # Fallback to local
             llm = self.registry.get_llm("ollama")
 
@@ -157,7 +178,7 @@ class Brain:
                     tier_used=target_tier,
                 )
 
-        except Exception as e:
+        except (ProviderNotFoundError, KeyError, json.JSONDecodeError, TypeError, ValueError) as e:
             # On failure, return unknown intent instead of crashing the pipeline
             logger.error("Failed to extract intent from LLM response: %s", e)
 

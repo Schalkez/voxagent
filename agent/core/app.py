@@ -56,9 +56,15 @@ class VoxAgentApp:
         """
         self._running = True
 
-        loop = asyncio.get_running_loop()
-        for sig in (signal.SIGINT, signal.SIGTERM):
-            loop.add_signal_handler(sig, lambda: asyncio.create_task(self.stop()))
+        # Signal handlers: Unix uses loop.add_signal_handler, Windows uses signal.signal
+        try:
+            loop = asyncio.get_running_loop()
+            for sig in (signal.SIGINT, signal.SIGTERM):
+                loop.add_signal_handler(sig, lambda: asyncio.create_task(self.stop()))
+        except NotImplementedError:
+            # Windows doesn't support add_signal_handler — use fallback
+            signal.signal(signal.SIGINT, lambda *_: asyncio.create_task(self.stop()))
+            signal.signal(signal.SIGTERM, lambda *_: asyncio.create_task(self.stop()))
 
         logger.info("Starting VoxAgent (debug=%s)...", self.debug)
 
@@ -102,6 +108,9 @@ class VoxAgentApp:
             skills=all_skills,
             config=self._config,
         )
+
+        # 6. Wire Hands with mouth/ears for voice confirmation
+        self._hands = Hands(mouth=self._mouth, ears=self._ears)
 
         logger.info("All modules initialized")
 

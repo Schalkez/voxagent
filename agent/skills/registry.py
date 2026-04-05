@@ -77,7 +77,7 @@ class SkillRegistry:
                 try:
                     importlib.import_module(module_name)
                     added_count += 1
-                except Exception as e:
+                except (ImportError, AttributeError, TypeError) as e:
                     logger.error("Failed to load skill module '%s': %s", module_name, e)
 
         logger.info("Loaded %d skill modules from '%s'.", added_count, package_name)

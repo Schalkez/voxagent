@@ -6,6 +6,7 @@ through the system speakers using sounddevice.
 
 from __future__ import annotations
 
+import asyncio
 import io
 import logging
 import wave
@@ -95,6 +96,7 @@ class Mouth:
         Args:
             sound: Sound identifier (e.g., 'beep', 'ding', 'error').
         """
+        # TODO(Phase 2): Implement earcon playback with bundled WAV files
         logger.debug("Earcon requested: %s (not yet implemented)", sound)
 
     def format_response(self, template_name: str, **kwargs: str) -> str:
@@ -117,6 +119,9 @@ class Mouth:
 async def _play_wav(wav_data: bytes, volume: float = 1.0) -> None:
     """Play WAV audio bytes through the default speaker.
 
+    Uses asyncio.to_thread to avoid blocking the event loop
+    during sounddevice playback.
+
     Args:
         wav_data: Raw audio data in WAV format.
         volume: Volume level from 0.0 to 1.0.
@@ -127,21 +132,22 @@ async def _play_wav(wav_data: bytes, volume: float = 1.0) -> None:
         logger.warning("sounddevice not installed — cannot play audio")
         return
 
-    try:
+    def _play_blocking() -> None:
         with wave.open(io.BytesIO(wav_data), "rb") as wf:
             sample_rate = wf.getframerate()
             channels = wf.getnchannels()
             raw_frames = wf.readframes(wf.getnframes())
-            dtype = np.int16
-            audio = np.frombuffer(raw_frames, dtype=dtype)
+            audio = np.frombuffer(raw_frames, dtype=np.int16)
 
-        if channels > 1:
-            audio = audio.reshape(-1, channels)
+        audio_out = audio.reshape(-1, channels) if channels > 1 else audio
 
         if volume < 1.0:
-            audio = (audio.astype(np.float32) * volume).astype(np.int16)
+            audio_out = (audio_out.astype(np.float32) * volume).astype(np.int16)
 
-        sd.play(audio, samplerate=sample_rate)
+        sd.play(audio_out, samplerate=sample_rate)
         sd.wait()
+
+    try:
+        await asyncio.to_thread(_play_blocking)
     except (OSError, ValueError, wave.Error):
         logger.exception("Audio playback failed")

@@ -1,5 +1,7 @@
 """Dependency Injection for FastAPI endpoints."""
 
+from typing import cast
+
 from fastapi import Request
 
 from api.exceptions import VoxAPIException
@@ -15,6 +17,4 @@ def get_provider_registry(request: Request) -> ProviderRegistry:
             status_code=500,
             code="internal_server_error",
         )
-    from typing import cast
-
     return cast(ProviderRegistry, registry)

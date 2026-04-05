@@ -129,7 +129,7 @@ class AppLauncherSkill(BaseSkill):
                 data={"app": app_name, "executable": executable},
                 tier_used=ExecutionTier.NATIVE_API,
             )
-        except Exception as e:
+        except (OSError, FileNotFoundError, subprocess.SubprocessError) as e:
             logger.warning("Failed to open %s: %s", app_name, e)
             return SkillResult(
                 success=False,
@@ -181,7 +181,7 @@ class AppLauncherSkill(BaseSkill):
                 tts_response=f"Không tắt được {app_name}, quá thời gian chờ.",
                 tier_used=ExecutionTier.SHELL,
             )
-        except Exception as e:
+        except (subprocess.SubprocessError, OSError) as e:
             return SkillResult(
                 success=False,
                 error=str(e),

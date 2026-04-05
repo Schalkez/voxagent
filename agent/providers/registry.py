@@ -36,6 +36,11 @@ class ProviderRegistry:
         self._tts_providers: dict[str, type[TTSProvider]] = {}
         self._vision_providers: dict[str, type[VisionProvider]] = {}
         self._fallback_chain: list[str] = []
+        # Instance caches to avoid repeated keyring lookups
+        self._llm_instances: dict[str, LLMProvider] = {}
+        self._stt_instances: dict[str, STTProvider] = {}
+        self._tts_instances: dict[str, TTSProvider] = {}
+        self._vision_instances: dict[str, VisionProvider] = {}
 
     # ── LLM ──
 
@@ -63,7 +68,9 @@ class ProviderRegistry:
         if name not in self._llm_providers:
             msg = f"LLM provider '{name}' not registered. Available: {list(self._llm_providers)}"
             raise ProviderNotFoundError(msg)
-        return self._llm_providers[name]()
+        if name not in self._llm_instances:
+            self._llm_instances[name] = self._llm_providers[name]()
+        return self._llm_instances[name]
 
     # ── STT ──
 
@@ -76,7 +83,9 @@ class ProviderRegistry:
         if name not in self._stt_providers:
             msg = f"STT provider '{name}' not registered. Available: {list(self._stt_providers)}"
             raise ProviderNotFoundError(msg)
-        return self._stt_providers[name]()
+        if name not in self._stt_instances:
+            self._stt_instances[name] = self._stt_providers[name]()
+        return self._stt_instances[name]
 
     # ── TTS ──
 
@@ -89,7 +98,9 @@ class ProviderRegistry:
         if name not in self._tts_providers:
             msg = f"TTS provider '{name}' not registered. Available: {list(self._tts_providers)}"
             raise ProviderNotFoundError(msg)
-        return self._tts_providers[name]()
+        if name not in self._tts_instances:
+            self._tts_instances[name] = self._tts_providers[name]()
+        return self._tts_instances[name]
 
     # ── Vision ──
 
@@ -102,7 +113,24 @@ class ProviderRegistry:
         if name not in self._vision_providers:
             msg = f"Vision provider '{name}' not registered. Available: {list(self._vision_providers)}"
             raise ProviderNotFoundError(msg)
-        return self._vision_providers[name]()
+        if name not in self._vision_instances:
+            self._vision_instances[name] = self._vision_providers[name]()
+        return self._vision_instances[name]
+
+    # ── Introspection ──
+
+    def list_registered(self) -> dict[str, list[str]]:
+        """List all registered provider names by type.
+
+        Returns:
+            Dict with keys 'llm', 'stt', 'tts', 'vision' mapping to name lists.
+        """
+        return {
+            "llm": list(self._llm_providers.keys()),
+            "stt": list(self._stt_providers.keys()),
+            "tts": list(self._tts_providers.keys()),
+            "vision": list(self._vision_providers.keys()),
+        }
 
     # ── Fallback ──
 

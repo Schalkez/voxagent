@@ -1,9 +1,10 @@
 """Tests for the Memory database module."""
 
-import pytest
 from datetime import datetime
 
-from core.memory import Memory, ConversationEntry
+import pytest
+
+from core.memory import ConversationEntry, Memory
 
 
 @pytest.fixture

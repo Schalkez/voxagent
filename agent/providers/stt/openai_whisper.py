@@ -75,7 +75,7 @@ class OpenAIWhisperProvider(STTProvider):
 
         return TranscribeResult(
             text=text,
-            confidence=0.95,
+            confidence=0.95,  # OpenAI API doesn't return confidence — using fixed estimate
             language=detected_lang,
             duration_ms=duration_ms,
         )

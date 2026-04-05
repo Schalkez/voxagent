@@ -152,6 +152,8 @@ async def get_system_status() -> dict[str, object]:
     all_skills = skill_registry.get_all_skills()
     active_count = len(all_skills)
 
+    registered = app.state.provider_registry.list_registered()
+
     return {
         "status": "online",
         "listening": False,
@@ -159,11 +161,7 @@ async def get_system_status() -> dict[str, object]:
             "active": active_count,
             "total": active_count,
         },
-        "providers": {
-            "llm": list(app.state.provider_registry._llm_providers.keys()),
-            "stt": list(app.state.provider_registry._stt_providers.keys()),
-            "tts": list(app.state.provider_registry._tts_providers.keys()),
-        },
+        "providers": registered,
         "stats": {
             "daily_commands": 0,
             "avg_latency_ms": 0,

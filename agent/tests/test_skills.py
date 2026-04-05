@@ -1,11 +1,9 @@
 """Tests for built-in skills."""
 
-from typing import ClassVar
 
 import pytest
-from unittest.mock import patch, MagicMock
 
-from skills.base import ExecutionTier, SkillIntent, SkillResult
+from skills.base import ExecutionTier, SkillIntent
 
 
 class TestMediaControlSkill:

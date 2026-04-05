@@ -1,12 +1,17 @@
 """Tests for the provider registry and fallback chain."""
 
-from typing import ClassVar
 
 import pytest
-from unittest.mock import AsyncMock
 
-from providers.base import LLMProvider, STTProvider, TTSProvider, Message, ModelInfo, TranscribeResult
-from providers.registry import ProviderRegistry, ProviderNotFoundError
+from providers.base import (
+    LLMProvider,
+    Message,
+    ModelInfo,
+    STTProvider,
+    TranscribeResult,
+    TTSProvider,
+)
+from providers.registry import ProviderNotFoundError, ProviderRegistry
 
 
 class MockLLM(LLMProvider):
@@ -78,13 +83,13 @@ class TestProviderRegistryLLM:
         with pytest.raises(ProviderNotFoundError):
             registry.get_llm("nonexistent")
 
-    def test_get_creates_new_instance(self) -> None:
-        """Each get_llm call should return a new instance."""
+    def test_get_returns_cached_instance(self) -> None:
+        """Each get_llm call should return the same cached instance."""
         registry = ProviderRegistry()
         registry.register_llm("test", MockLLM)
         a = registry.get_llm("test")
         b = registry.get_llm("test")
-        assert a is not b
+        assert a is b
 
 
 class TestProviderRegistrySTT:

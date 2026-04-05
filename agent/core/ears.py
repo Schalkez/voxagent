@@ -47,7 +47,7 @@ class EarsState(Enum):
     STOPPED = auto()
 
 
-@dataclass
+@dataclass(frozen=True)
 class EarsEvent:
     """Event emitted by the Ears pipeline for UI/logging.
 
@@ -154,6 +154,10 @@ class Ears:
         self._wake_word_detector.unload()
         self._vad.unload()
         self._emit(EarsState.STOPPED, "Ears stopped")
+
+    async def stop(self) -> None:
+        """Alias for stop_listening() — used by VoxAgentApp lifecycle."""
+        await self.stop_listening()
 
     # ── Main Pipeline ─────────────────────────────
 

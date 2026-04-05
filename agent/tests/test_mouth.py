@@ -1,9 +1,10 @@
 """Tests for the Mouth TTS output module."""
 
+from unittest.mock import AsyncMock, patch
+
 import pytest
 
-from core.mouth import Mouth, SpeechConfig, RESPONSE_TEMPLATES, _play_wav
-from unittest.mock import AsyncMock, MagicMock, patch
+from core.mouth import RESPONSE_TEMPLATES, Mouth, SpeechConfig
 
 
 class TestSpeechConfig:

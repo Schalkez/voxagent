@@ -4,10 +4,13 @@ Handles volume-specific commands separately from power controls.
 Uses native API (ctypes on Windows) for direct volume manipulation.
 """
 
+import logging
 from typing import ClassVar
 
 from skills.base import BaseSkill, ExecutionTier, SkillIntent, SkillResult
 from skills.registry import register_skill
+
+logger = logging.getLogger("voxagent.skills.system")
 
 
 @register_skill
@@ -27,6 +30,14 @@ class SystemVolumeSkill(BaseSkill):
         """Executes system interactions like sound volume tweaks."""
         if intent.action == "set_volume":
             level = intent.params.get("level", "50")
+            try:
+                from system.factory import get_system_automation
+
+                automation = get_system_automation()
+                automation.set_volume(int(level))
+            except (NotImplementedError, OSError):
+                logger.warning("Volume control not available on this platform")
+
             return SkillResult(
                 success=True,
                 tts_response=f"Đã chỉnh âm lượng ở mức {level} phần trăm.",

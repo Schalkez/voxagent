@@ -59,7 +59,7 @@ async def check_provider_health(registry: ProviderRegistry, provider_id: str) ->
         return asdict(result)
     except ProviderNotFoundError:
         return asdict(TestResult(ok=False, latency_ms=0, message="Provider not registered"))
-    except Exception as exc:
+    except (ConnectionError, OSError, KeyError, TypeError, ValueError) as exc:
         latency = int((time.monotonic() - start) * 1000)
         return asdict(TestResult(ok=False, latency_ms=latency, message=str(exc)))
 
