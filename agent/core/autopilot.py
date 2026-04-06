@@ -1,12 +1,23 @@
 """AUTOPILOT module: Background task scheduling and monitoring.
 
 Supports trigger types: time-based, event-based, condition-based, and idle-based.
+Runs as a separate asyncio task alongside the main pipeline.
 """
 
+from __future__ import annotations
+
+import asyncio
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
+
+logger = logging.getLogger("voxagent.autopilot")
+
+# ── Constants ──
+
+POLL_INTERVAL_SECONDS = 1.0
 
 
 class TriggerType(Enum):
@@ -75,6 +86,7 @@ class Autopilot:
             msg = f"Task '{task.id}' already registered"
             raise ValueError(msg)
         self._tasks[task.id] = task
+        logger.info("Registered autopilot task: %s (%s)", task.id, task.description)
 
     async def cancel_task(self, task_id: str) -> bool:
         """Cancel a registered task.
@@ -87,14 +99,76 @@ class Autopilot:
         """
         if task_id in self._tasks:
             del self._tasks[task_id]
+            logger.info("Cancelled autopilot task: %s", task_id)
             return True
         return False
 
     async def run(self) -> None:
-        """Main loop checking triggers and executing tasks.
+        """Main loop: check triggers every 1s, execute matching tasks.
 
         Runs continuously until stopped, checking each registered
         task's condition and executing its actions when triggered.
+        Failed tasks increment their retry count and are removed
+        when max_retries is reached.
         """
         self._running = True
-        # Placeholder — will implement actual trigger checking loop
+        logger.info("Autopilot started with %d tasks", len(self._tasks))
+
+        while self._running:
+            for task_id, task in list(self._tasks.items()):
+                try:
+                    if task.condition():
+                        logger.info("Task triggered: %s", task_id)
+                        for action in task.actions:
+                            await asyncio.to_thread(action)
+                        if not task.repeat:
+                            del self._tasks[task_id]
+                            logger.info("Task completed and removed: %s", task_id)
+                except (RuntimeError, OSError, ValueError) as e:
+                    task._retry_count += 1
+                    logger.warning(
+                        "Task '%s' failed (attempt %d/%d): %s",
+                        task_id,
+                        task._retry_count,
+                        task.max_retries,
+                        e,
+                    )
+                    if task._retry_count >= task.max_retries:
+                        del self._tasks[task_id]
+                        logger.warning("Task '%s' removed after max retries", task_id)
+
+            await asyncio.sleep(POLL_INTERVAL_SECONDS)
+
+    async def stop(self) -> None:
+        """Stop the autopilot main loop.
+
+        The loop will exit after the current sleep interval completes.
+        """
+        self._running = False
+        logger.info("Autopilot stopping...")
+
+    @property
+    def is_running(self) -> bool:
+        """Whether the autopilot main loop is currently active."""
+        return self._running
+
+    @property
+    def task_count(self) -> int:
+        """Number of currently registered tasks."""
+        return len(self._tasks)
+
+    def list_tasks(self) -> list[dict[str, str]]:
+        """List all registered tasks with their metadata.
+
+        Returns:
+            List of dicts with task id, description, and trigger type.
+        """
+        return [
+            {
+                "id": task.id,
+                "description": task.description,
+                "trigger_type": task.trigger_type.value,
+                "retries": str(task._retry_count),
+            }
+            for task in self._tasks.values()
+        ]

@@ -141,6 +141,24 @@ class VoxAgentApp:
         except ImportError:
             pass
         try:
+            from providers.deepseek_provider import DeepSeekProvider
+
+            self._registry.register_llm("deepseek", DeepSeekProvider)
+        except ImportError:
+            pass
+        try:
+            from providers.mistral_provider import MistralProvider
+
+            self._registry.register_llm("mistral", MistralProvider)
+        except ImportError:
+            pass
+        try:
+            from providers.openrouter_provider import OpenRouterProvider
+
+            self._registry.register_llm("openrouter", OpenRouterProvider)
+        except ImportError:
+            pass
+        try:
             from providers.stt.whisper_local import WhisperLocalProvider
 
             self._registry.register_stt("whisper_local", WhisperLocalProvider)

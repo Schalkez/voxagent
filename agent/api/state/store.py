@@ -11,6 +11,9 @@ PROVIDER_META: dict[str, dict[str, str]] = {
     "groq": {"name": "Groq", "icon": "bolt", "type": "cloud"},
     "anthropic": {"name": "Anthropic", "icon": "shield", "type": "cloud"},
     "gemini": {"name": "Gemini", "icon": "flare", "type": "cloud"},
+    "deepseek": {"name": "DeepSeek", "icon": "explore", "type": "cloud"},
+    "mistral": {"name": "Mistral", "icon": "air", "type": "cloud"},
+    "openrouter": {"name": "OpenRouter", "icon": "router", "type": "cloud"},
     "ollama": {"name": "Ollama", "icon": "terminal", "type": "local"},
 }
 

@@ -79,6 +79,7 @@ select = [
 ignore = [
     "E501",   # line too long (formatter handles)
     "ASYNC110", # asyncio.sleep in while loop (placeholder pattern)
+    "ASYNC240", # pathlib in async (fast fs metadata, not I/O bound)
 ]
 
 [tool.ruff.lint.flake8-bugbear]
@@ -130,7 +131,22 @@ addopts = "-v --tb=short"
 
 [tool.coverage.run]
 source = ["core", "providers", "skills", "system"]
-omit = ["*/tests/*", "*/__pycache__/*"]
+omit = [
+    "*/tests/*",
+    "*/__pycache__/*",
+    "providers/vision/*",          # Requires external API keys
+    "providers/stt/*",             # Requires audio hardware / API keys
+    "providers/tts/*",             # Requires TTS engine / API keys
+    "providers/*_provider.py",     # LLM providers require API keys for chat()
+    "system/macos.py",             # macOS-only (osascript)
+    "system/linux.py",             # Linux-only (xdotool)
+    "system/windows.py",           # Windows-only (ctypes.windll)
+    "core/app.py",                 # Requires full system (audio, tray, etc.)
+    "core/ears.py",                # Requires audio hardware
+    "core/ocr.py",                 # Requires PaddleOCR/Tesseract
+    "skills/marketplace.py",       # Requires network registry
+    "api/server_mode.py",          # Integration-level test only
+]
 
 [tool.coverage.report]
 fail_under = 80

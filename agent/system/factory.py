@@ -37,9 +37,13 @@ def get_system_automation() -> SystemAutomation:
 
         _automation = WindowsAutomation()
     elif os_name == "darwin":
-        raise NotImplementedError("macOS automation is not supported yet.")
+        from system.macos import MacOSAutomation
+
+        _automation = MacOSAutomation()
     elif os_name == "linux":
-        raise NotImplementedError("Linux automation is not supported yet.")
+        from system.linux import LinuxAutomation
+
+        _automation = LinuxAutomation()
     else:
         raise OSError(f"Unsupported operating system: {os_name}")
 

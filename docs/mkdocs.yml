@@ -1,0 +1,20 @@
+site_name: VoxAgent Documentation
+site_url: https://voxagent.dev
+repo_url: https://github.com/voxagent/voxagent
+
+theme:
+  name: material
+  palette:
+    primary: indigo
+    accent: teal
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - search.suggest
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Configuration: configuration.md
+  - Skills Development: skills.md
+  - API Reference: api.md

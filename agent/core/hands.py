@@ -49,6 +49,7 @@ DANGEROUS_ACTIONS = frozenset(
         "format_disk",
         "run_as_admin",
         "send_email",
+        "run_command",
     }
 )
 

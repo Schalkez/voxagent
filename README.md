@@ -206,9 +206,9 @@ class MyCustomSkill(BaseSkill):
 
 Mọi đóng góp đều được chào đón! Xem [CONTRIBUTING.md](CONTRIBUTING.md) để bắt đầu.
 
-- 🐛 [Báo lỗi](https://github.com/your-org/voxagent/issues/new?template=bug_report.md)
-- 💡 [Đề xuất tính năng](https://github.com/your-org/voxagent/issues/new?template=feature_request.md)
-- 🔌 [Chia sẻ skill của bạn](https://github.com/your-org/voxagent/discussions/categories/skills)
+- 🐛 [Báo lỗi](https://github.com/voxagent/voxagent/issues/new?template=bug_report.md)
+- 💡 [Đề xuất tính năng](https://github.com/voxagent/voxagent/issues/new?template=feature_request.md)
+- 🔌 [Chia sẻ skill của bạn](https://github.com/voxagent/voxagent/discussions/categories/skills)
 - 💬 [Discord community](https://discord.gg/voxagent)
 
 ---

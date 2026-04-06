@@ -56,6 +56,24 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         registry.register_llm("ollama", OllamaProvider)
     except ImportError:
         pass
+    try:
+        from providers.deepseek_provider import DeepSeekProvider
+
+        registry.register_llm("deepseek", DeepSeekProvider)
+    except ImportError:
+        pass
+    try:
+        from providers.mistral_provider import MistralProvider
+
+        registry.register_llm("mistral", MistralProvider)
+    except ImportError:
+        pass
+    try:
+        from providers.openrouter_provider import OpenRouterProvider
+
+        registry.register_llm("openrouter", OpenRouterProvider)
+    except ImportError:
+        pass
 
     # Attach to app state
     app.state.provider_registry = registry

@@ -11,7 +11,7 @@ import keyring
 SERVICE_NAME = "voxagent"
 
 # Known cloud providers that require API keys
-CLOUD_PROVIDERS = ("openai", "groq", "anthropic", "gemini")
+CLOUD_PROVIDERS = ("openai", "groq", "anthropic", "gemini", "deepseek", "mistral", "openrouter")
 
 
 def save_key(provider: str, api_key: str) -> None:
