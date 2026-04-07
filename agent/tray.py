@@ -130,25 +130,25 @@ class TrayApp:
             self._icon.icon = _create_icon_image(color)
             self._icon.update_menu()
 
-    def _on_start(self, icon: object, item: object) -> None:
+    def _on_start(self, _icon: object, _item: object) -> None:
         """Handle 'Start Listening' menu click."""
         self._listening = True
         self.update_status(listening=True)
         if self._on_start_callback:
             self._on_start_callback()
 
-    def _on_stop(self, icon: object, item: object) -> None:
+    def _on_stop(self, _icon: object, _item: object) -> None:
         """Handle 'Stop Listening' menu click."""
         self._listening = False
         self.update_status(listening=False)
         if self._on_stop_callback:
             self._on_stop_callback()
 
-    def _on_open_dashboard(self, icon: object, item: object) -> None:
+    def _on_open_dashboard(self, _icon: object, _item: object) -> None:
         """Handle 'Open Dashboard' menu click."""
         webbrowser.open(_DASHBOARD_URL)
 
-    def _on_quit(self, icon: object, item: object) -> None:
+    def _on_quit(self, _icon: object, _item: object) -> None:
         """Handle 'Quit' menu click."""
         self._listening = False
         if self._icon is not None:

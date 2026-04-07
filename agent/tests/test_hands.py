@@ -21,7 +21,7 @@ class DummySkill(BaseSkill):
 
 
 @pytest.fixture
-def mock_registry(monkeypatch):
+def mock_registry(_monkeypatch):
     registry = SkillRegistry()
     registry._skills.clear() # Reset for test
     registry.register(DummySkill)
@@ -30,7 +30,7 @@ def mock_registry(monkeypatch):
 
 @pytest.mark.asyncio
 class TestHandsOrchestration:
-    async def test_hands_executes_registered_skill(self, mock_registry):
+    async def test_hands_executes_registered_skill(self, _mock_registry):
         hands = Hands()
         intent = SkillIntent(
             skill_name="dummy",
@@ -45,7 +45,7 @@ class TestHandsOrchestration:
         assert result.data["run"] is True
         assert result.tier_used == ExecutionTier.APP_API
 
-    async def test_hands_returns_error_for_unknown_skill(self, mock_registry):
+    async def test_hands_returns_error_for_unknown_skill(self, _mock_registry):
         hands = Hands()
         intent = SkillIntent(
             skill_name="nonexistent",

@@ -168,4 +168,5 @@ color = true
 # ── VULTURE (Dead code) ───────────────────────────
 [tool.vulture]
 min_confidence = 70
-paths = ["core", "skills", "api"]
+paths = ["core", "skills", "api", "tray.py", "tests"]
+exclude = [".venv/", ".agents/", "dashboard/"]
