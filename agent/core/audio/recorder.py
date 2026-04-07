@@ -107,8 +107,8 @@ class AudioRecorder:
     def _on_audio_chunk(
         self,
         indata: npt.NDArray[np.int16],
-        frames: int,
-        time_info: object,
+        _frames: int,
+        _time_info: object,
         status: object,
     ) -> None:
         """Callback invoked by sounddevice for each audio chunk."""
