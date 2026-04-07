@@ -176,6 +176,8 @@ class TestAppLauncherCoverage:
 
     @pytest.mark.asyncio
     async def test_list_running(self) -> None:
+        from unittest.mock import patch
+
         from skills.app_launcher import AppLauncherSkill
 
         skill = AppLauncherSkill()
@@ -185,6 +187,8 @@ class TestAppLauncherCoverage:
             params={},
             raw_text="list apps",
         )
-        result = await skill.execute(intent)
-        # May fail if psutil is not installed, but should still return a result
+        with patch("skills.app_launcher.asyncio") as mock_asyncio:
+            from unittest.mock import AsyncMock as _AM
+            mock_asyncio.to_thread = _AM(return_value=None)
+            result = await skill.execute(intent)
         assert isinstance(result, SkillResult)

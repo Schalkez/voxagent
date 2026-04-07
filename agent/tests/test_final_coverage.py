@@ -199,8 +199,10 @@ class TestAppLauncherMoreCoverage:
             params={"app_name": "notepad"},
             raw_text="open notepad",
         )
-        result = await skill.execute(intent)
-        # Should succeed on Windows, may fail on Linux CI
+        with patch("skills.app_launcher.asyncio") as mock_asyncio:
+            from unittest.mock import AsyncMock as _AM
+            mock_asyncio.to_thread = _AM(return_value=None)
+            result = await skill.execute(intent)
         assert isinstance(result, SkillResult)
 
 
@@ -215,8 +217,11 @@ class TestSystemControlCoverage:
         intent = SkillIntent(
             skill_name="system_control", action="lock", params={}, raw_text="lock"
         )
-        result = await skill.execute(intent)
+        with patch("subprocess.run") as mock_run:
+            result = await skill.execute(intent)
         assert isinstance(result, SkillResult)
+        assert result.success is True
+        mock_run.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_sleep_action(self) -> None:
@@ -226,8 +231,11 @@ class TestSystemControlCoverage:
         intent = SkillIntent(
             skill_name="system_control", action="sleep", params={}, raw_text="sleep"
         )
-        result = await skill.execute(intent)
+        with patch("subprocess.run") as mock_run:
+            result = await skill.execute(intent)
         assert isinstance(result, SkillResult)
+        assert result.success is True
+        mock_run.assert_called_once()
 
 
 class TestSkillRegistryCoverage:
@@ -263,7 +271,10 @@ class TestTerminalCoverage:
             params={},
             raw_text="list processes",
         )
-        result = await skill.execute(intent)
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value.stdout = "python 1234\n"
+            mock_run.return_value.returncode = 0
+            result = await skill.execute(intent)
         assert isinstance(result, SkillResult)
 
     @pytest.mark.asyncio
@@ -325,7 +336,8 @@ class TestMediaControlCoverage:
         intent = SkillIntent(
             skill_name="media_control", action="play", params={}, raw_text="play"
         )
-        result = await skill.execute(intent)
+        with patch("skills.media_control._send_media_key", return_value=True):
+            result = await skill.execute(intent)
         assert result.success is True
 
     @pytest.mark.asyncio
@@ -336,7 +348,8 @@ class TestMediaControlCoverage:
         intent = SkillIntent(
             skill_name="media_control", action="pause", params={}, raw_text="pause"
         )
-        result = await skill.execute(intent)
+        with patch("skills.media_control._send_media_key", return_value=True):
+            result = await skill.execute(intent)
         assert result.success is True
 
     @pytest.mark.asyncio
@@ -347,7 +360,8 @@ class TestMediaControlCoverage:
         intent = SkillIntent(
             skill_name="media_control", action="next", params={}, raw_text="next"
         )
-        result = await skill.execute(intent)
+        with patch("skills.media_control._send_media_key", return_value=True):
+            result = await skill.execute(intent)
         assert result.success is True
 
     @pytest.mark.asyncio
@@ -358,5 +372,6 @@ class TestMediaControlCoverage:
         intent = SkillIntent(
             skill_name="media_control", action="previous", params={}, raw_text="prev"
         )
-        result = await skill.execute(intent)
+        with patch("skills.media_control._send_media_key", return_value=True):
+            result = await skill.execute(intent)
         assert result.success is True

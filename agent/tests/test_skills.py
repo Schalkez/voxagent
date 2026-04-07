@@ -137,6 +137,8 @@ class TestSystemVolumeSkill:
     @pytest.mark.asyncio
     async def test_set_volume(self) -> None:
         """Should respond with Vietnamese confirmation."""
+        from unittest.mock import patch
+
         from skills.system_skill import SystemVolumeSkill
 
         skill = SystemVolumeSkill()
@@ -146,10 +148,12 @@ class TestSystemVolumeSkill:
             params={"level": "75"},
             raw_text="volume 75",
         )
-        result = await skill.execute(intent)
+        with patch("system.factory.get_system_automation") as mock_auto:
+            result = await skill.execute(intent)
         assert result.success is True
         assert "75" in (result.tts_response or "")
         assert result.tier_used == ExecutionTier.NATIVE_API
+        mock_auto.return_value.set_volume.assert_called_once_with(75)
 
     @pytest.mark.asyncio
     async def test_mute(self) -> None:
