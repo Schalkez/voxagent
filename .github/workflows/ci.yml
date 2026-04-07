@@ -35,7 +35,7 @@ jobs:
       run: bandit -c pyproject.toml -r core/ skills/ api/
 
     - name: Check Dead Code (Vulture)
-      run: vulture core/ skills/ api/
+      run: vulture .
       
     - name: Documentation Coverage (Interrogate)
       run: interrogate -c pyproject.toml

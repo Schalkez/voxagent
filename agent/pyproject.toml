@@ -164,3 +164,8 @@ exclude = ["tests", "docs"]
 verbose = 1
 quiet = false
 color = true
+                                                                                          
+# ── VULTURE (Dead code) ───────────────────────────
+[tool.vulture]
+min_confidence = 70
+paths = ["core", "skills", "api"]
