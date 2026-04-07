@@ -154,8 +154,8 @@ class TestMouthPlayWav:
         with patch.dict("sys.modules", {"sounddevice": None}):
             # Force ImportError
 
-            # Just test it doesn't crash
-            await _play_wav(b"\x00" * 100)
+            result = await _play_wav(b"\x00" * 100)
+            assert result is None
 
     @pytest.mark.asyncio
     async def test_speak_with_tts_provider(self) -> None:
@@ -178,7 +178,8 @@ class TestMouthPlayWav:
         mock_provider.synthesize.side_effect = RuntimeError("TTS failed")
 
         mouth = Mouth(tts_provider=mock_provider)
-        await mouth.speak("hello")  # Should not raise
+        result = await mouth.speak("hello")
+        assert result is None
 
 
 # ── Eyes: coverage for system-automation-backed paths ──

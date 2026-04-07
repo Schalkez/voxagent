@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from enum import IntEnum
 from typing import TYPE_CHECKING
 
+from core.eyes import Eyes
 from providers.base import Message
 from providers.registry import ProviderNotFoundError, ProviderRegistry
 from skills.base import BaseSkill
@@ -76,6 +77,7 @@ class Brain:
         """
         self.registry = registry
         self.skills = {skill.name: skill for skill in skills}
+        self.eyes = Eyes()
 
         if config is not None:
             # Extract routing tiers from config into dict format
@@ -151,6 +153,17 @@ class Brain:
 
         # 3. System Prompt
         sys_prompt = "You are VoxAgent, an AI desktop assistant. Analyze the user's voice command and select the appropriate tool (skill) to execute. Always use tool calling."
+
+        # Optionally inject vision context if the command references the screen
+        text_lower = text.lower()
+        if any(kw in text_lower for kw in ["màn hình", "screen", "đọc", "nhìn", "thấy"]):
+            try:
+                screen_content = await self.eyes.read_screen_text()
+                if screen_content:
+                    sys_prompt += f"\n\nCURRENT SCREEN TEXT CONTEXT:\n{screen_content}"
+            except Exception as e:
+                logger.warning("Failed to inject screen context: %s", e)
+
         messages = [Message(role="system", content=sys_prompt), Message(role="user", content=text)]
 
         # 4. Inference
@@ -168,13 +181,18 @@ class Brain:
 
             if tool_name in self.skills:
                 action = str(args.get("action", "default"))
-                params = {str(k): str(v) for k, v in args.items() if k != "action"}
+                params = {str(k): str(v) for k, v in args.items() if k not in ("action", "confidence")}
+
+                try:
+                    confidence = float(args.get("confidence", 0.9))
+                except (ValueError, TypeError):
+                    confidence = 0.9
 
                 return Intent(
                     skill_name=tool_name,
                     action=action,
                     params=params,
-                    confidence=0.9,
+                    confidence=confidence,
                     tier_used=target_tier,
                 )
 
@@ -205,9 +223,13 @@ class Brain:
                             "action": {
                                 "type": "string",
                                 "description": "The specific task to perform.",
+                            },
+                            "confidence": {
+                                "type": "number",
+                                "description": "Confidence score from 0.0 to 1.0 of the classification."
                             }
                         },
-                        "required": ["action"],
+                        "required": ["action", "confidence"],
                     },
                 },
             }

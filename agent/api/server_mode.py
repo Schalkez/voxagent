@@ -6,6 +6,7 @@ without audio I/O, enabling integration with n8n, Home Assistant, etc.
 
 from __future__ import annotations
 
+import hmac
 import logging
 import os
 import time
@@ -25,6 +26,7 @@ RATE_LIMIT_WINDOW_SECONDS = 60
 
 # --- In-memory rate limit store: {ip: [timestamp, ...]} ---
 _rate_limit_store: dict[str, list[float]] = defaultdict(list)
+MAX_TRACKED_IPS = 10000
 
 
 def _get_client_ip(request: Request) -> str:
@@ -63,6 +65,15 @@ def _check_rate_limit(request: Request) -> None:
 
     _rate_limit_store[client_ip].append(now)
 
+    # Bound memory usage under DoS
+    if len(_rate_limit_store) > MAX_TRACKED_IPS:
+        empty_keys = [k for k, v in _rate_limit_store.items() if not v]
+        for k in empty_keys:
+            del _rate_limit_store[k]
+        if len(_rate_limit_store) > MAX_TRACKED_IPS:
+            _rate_limit_store.clear()
+            _rate_limit_store[client_ip] = [now]
+
 
 def _check_api_key(request: Request) -> None:
     """Validate API key from request header.
@@ -82,7 +93,7 @@ def _check_api_key(request: Request) -> None:
     provided_key = request.headers.get(API_KEY_HEADER)
     if not provided_key:
         raise HTTPException(status_code=401, detail="Missing API key")
-    if provided_key != expected_key:
+    if not hmac.compare_digest(provided_key, expected_key):
         raise HTTPException(status_code=401, detail="Invalid API key")
 
 
@@ -121,10 +132,12 @@ async def execute_command(body: dict[str, str]) -> dict[str, object]:
     from providers.registry import ProviderRegistry
     from skills.registry import registry as skill_registry
 
-    registry = getattr(app.state, "provider_registry", ProviderRegistry())
-    all_skills = list(skill_registry.get_all_skills().values())
-    brain = Brain(registry=registry, skills=all_skills)
+    if not hasattr(app.state, "brain"):
+        registry = getattr(app.state, "provider_registry", ProviderRegistry())
+        all_skills = list(skill_registry.get_all_skills().values())
+        app.state.brain = Brain(registry=registry, skills=all_skills)
 
+    brain = app.state.brain
     intent = await brain.process(text)
 
     return {
@@ -142,7 +155,7 @@ async def execute_command(body: dict[str, str]) -> dict[str, object]:
 app.include_router(server_router)
 
 
-def run_server_mode(host: str = "0.0.0.0", port: int = 8642) -> None:
+def run_server_mode(host: str = "127.0.0.1", port: int = 8642) -> None:
     """Run VoxAgent in headless server mode (no audio, no tray).
 
     Args:

@@ -183,6 +183,25 @@ Xem thêm: [docs/configuration.md](docs/configuration.md)
 
 ---
 
+## 🌐 Server Mode (Headless API)
+
+VoxAgent tích hợp sẵn API Server nội bộ giúp chạy ngầm và cho phép giao tiếp với các nền tảng tự động hóa (e.g., Home Assistant, n8n, Zapier) mà không qua microphone.
+
+Khởi chạy bằng CLI:
+```bash
+voxagent-api
+```
+
+Gửi truy vấn POST để ra lệnh từ xa bằng JSON Payload (cổng mặc định `8642`):
+```bash
+curl -X POST http://127.0.0.1:8642/api/command \
+     -H "Content-Type: application/json" \
+     -H "X-VoxAgent-Key: <your_secret_key>" \
+     -d '{"text": "tắt máy tính sau 1 tiếng nữa"}'
+```
+
+---
+
 ## 🔌 Skill / Plugin System
 
 VoxAgent có thể mở rộng dễ dàng bằng skills. Xem hướng dẫn: [SKILL_DEVELOPMENT_GUIDE.md](SKILL_DEVELOPMENT_GUIDE.md)

@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from core.autopilot import Autopilot
 from core.brain import Brain
 from core.config import VoxAgentConfig, load_config
 from core.hands import Hands
@@ -48,6 +49,8 @@ class VoxAgentApp:
     _hands: Hands = field(default_factory=Hands, init=False)
     _mouth: Mouth = field(default_factory=Mouth, init=False)
     _memory: Memory = field(default_factory=Memory, init=False)
+    _autopilot: Autopilot = field(default_factory=Autopilot, init=False)
+    _bg_tasks: set[asyncio.Task[None]] = field(default_factory=set, init=False)
 
     async def start(self) -> None:
         """Initialize all modules and start the main listening loop.
@@ -71,7 +74,12 @@ class VoxAgentApp:
         await self._init_modules()
 
         if self.debug:
-            logger.info("[VoxAgent] Pipeline ready: EARS → BRAIN → HANDS → MOUTH")
+            logger.info("[VoxAgent] Pipeline ready: EARS → BRAIN → HANDS → MOUTH (with Autopilot)")
+
+        # Start autopilot background task
+        task = asyncio.create_task(self._autopilot.run())
+        self._bg_tasks.add(task)
+        task.add_done_callback(self._bg_tasks.discard)
 
         try:
             await self._run_loop()
@@ -218,6 +226,10 @@ class VoxAgentApp:
         if self._ears is not None:
             await self._ears.stop()
 
+        await self._autopilot.stop()
+        for t in self._bg_tasks:
+            t.cancel()
+
         await self._memory.close()
         logger.info("VoxAgent stopped")
 
@@ -361,7 +373,9 @@ def _run_setup() -> None:
     choice = input("Choose a profile (1-4) or press Enter for 'cloud_free': ").strip()
 
     profile_names = list(profiles.keys())
-    selected = profile_names[int(choice) - 1] if choice in ("1", "2", "3", "4") else "cloud_free"
+    selected = "cloud_free"
+    if choice.isdigit() and 1 <= int(choice) <= len(profile_names):
+        selected = profile_names[int(choice) - 1]
 
     config = load_profile(selected)
     save_config(config)

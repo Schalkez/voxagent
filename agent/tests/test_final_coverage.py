@@ -58,8 +58,10 @@ class TestMouthCoverage:
         mock_provider = AsyncMock()
         mock_provider.synthesize.return_value = b"\x00" * 100
         mouth = Mouth(tts_provider=mock_provider)
-        with patch("core.mouth._play_wav", new_callable=AsyncMock):
-            await mouth.speak("hello", config=SpeechConfig(voice="vi-male"))
+        with patch("core.mouth._play_wav", new_callable=AsyncMock) as mock_play:
+            result = await mouth.speak("hello", config=SpeechConfig(voice="vi-male"))
+            assert result is None
+            mock_play.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_format_and_speak(self) -> None:
@@ -200,8 +202,8 @@ class TestAppLauncherMoreCoverage:
             raw_text="open notepad",
         )
         with patch("skills.app_launcher.asyncio") as mock_asyncio:
-            from unittest.mock import AsyncMock as _AM
-            mock_asyncio.to_thread = _AM(return_value=None)
+            from unittest.mock import AsyncMock
+            mock_asyncio.to_thread = AsyncMock(return_value=None)
             result = await skill.execute(intent)
         assert isinstance(result, SkillResult)
 
@@ -249,7 +251,6 @@ class TestSkillRegistryCoverage:
         assert len(all_skills) > 0
 
     def test_get_all_skills_has_entries(self) -> None:
-        from skills.media_control import MediaControlSkill  # Trigger registration
         from skills.registry import registry
 
         all_skills = registry.get_all_skills()

@@ -27,13 +27,15 @@ class TestMouthPlayEarcon:
     @pytest.mark.asyncio
     async def test_play_earcon_does_not_raise(self) -> None:
         mouth = Mouth()
-        await mouth.play_earcon("wake")  # Should not raise
+        result = await mouth.play_earcon("wake")
+        assert result is None
 
     @pytest.mark.asyncio
     async def test_play_earcon_with_various_sounds(self) -> None:
         mouth = Mouth()
         for sound in ("wake", "done", "error", "confirm"):
-            await mouth.play_earcon(sound)
+            result = await mouth.play_earcon(sound)
+            assert result is None
 
 
 class TestMouthFormatResponse:
@@ -188,7 +190,7 @@ class TestAppLauncherCoverage:
             raw_text="list apps",
         )
         with patch("skills.app_launcher.asyncio") as mock_asyncio:
-            from unittest.mock import AsyncMock as _AM
-            mock_asyncio.to_thread = _AM(return_value=None)
+            from unittest.mock import AsyncMock
+            mock_asyncio.to_thread = AsyncMock(return_value=None)
             result = await skill.execute(intent)
         assert isinstance(result, SkillResult)

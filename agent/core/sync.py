@@ -7,6 +7,7 @@ file. sync_preferences() merges configs with last-writer-wins semantics.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import platform
@@ -83,10 +84,14 @@ class SyncManager:
             last_seen=datetime.now(tz=UTC).isoformat(),
         )
         device_file = self._sync_dir / f"{self._device_id}.json"
-        device_file.write_text(
-            json.dumps({"device": asdict(device), "preferences": {}}, indent=2),
-            encoding="utf-8",
-        )
+
+        def _write_device() -> None:
+            device_file.write_text(
+                json.dumps({"device": asdict(device), "preferences": {}}, indent=2),
+                encoding="utf-8",
+            )
+
+        await asyncio.to_thread(_write_device)
         logger.info("Device registered: %s (%s)", device.hostname, device.device_id[:8])
         return device
 
@@ -104,36 +109,41 @@ class SyncManager:
         """
         device_file = self._sync_dir / f"{self._device_id}.json"
 
-        # Write local prefs
-        if local_prefs is not None:
-            data: dict[str, object] = {"preferences": local_prefs}
-            if device_file.exists():
+        def _sync_io() -> tuple[dict[str, object], int]:
+            # Write local prefs
+            if local_prefs is not None:
+                data: dict[str, object] = {"preferences": local_prefs}
+                if device_file.exists():
+                    try:
+                        existing = json.loads(device_file.read_text(encoding="utf-8"))
+                        data["device"] = existing.get("device", {})
+                    except (json.JSONDecodeError, OSError):
+                        pass
+                data["preferences"] = local_prefs
+                data["synced_at"] = datetime.now(tz=UTC).isoformat()
+                device_file.write_text(json.dumps(data, indent=2, default=str), encoding="utf-8")
+
+            # Read and merge all device files
+            merged: dict[str, object] = {}
+            latest_ts = ""
+            device_count = 0
+
+            for path in self._sync_dir.glob("*.json"):
+                device_count += 1
                 try:
-                    existing = json.loads(device_file.read_text(encoding="utf-8"))
-                    data["device"] = existing.get("device", {})
+                    content = json.loads(path.read_text(encoding="utf-8"))
+                    ts = content.get("synced_at", "")
+                    prefs = content.get("preferences", {})
+                    if ts >= latest_ts:
+                        merged.update(prefs)
+                        latest_ts = ts
                 except (json.JSONDecodeError, OSError):
-                    pass
-            data["preferences"] = local_prefs
-            data["synced_at"] = datetime.now(tz=UTC).isoformat()
-            device_file.write_text(json.dumps(data, indent=2, default=str), encoding="utf-8")
+                    logger.warning("Skipping corrupt sync file: %s", path.name)
+                    continue
+            return merged, device_count
 
-        # Read and merge all device files (last-writer-wins by synced_at)
-        merged: dict[str, object] = {}
-        latest_ts = ""
-
-        for path in self._sync_dir.glob("*.json"):
-            try:
-                content = json.loads(path.read_text(encoding="utf-8"))
-                ts = content.get("synced_at", "")
-                prefs = content.get("preferences", {})
-                if ts >= latest_ts:
-                    merged.update(prefs)
-                    latest_ts = ts
-            except (json.JSONDecodeError, OSError):
-                logger.warning("Skipping corrupt sync file: %s", path.name)
-                continue
-
-        logger.info("Synced preferences from %d devices", len(list(self._sync_dir.glob("*.json"))))
+        merged, count = await asyncio.to_thread(_sync_io)
+        logger.info("Synced preferences from %d devices", count)
         return merged
 
     async def list_devices(self) -> list[DeviceInfo]:
@@ -142,23 +152,26 @@ class SyncManager:
         Returns:
             List of known DeviceInfo objects.
         """
-        devices: list[DeviceInfo] = []
-        for path in self._sync_dir.glob("*.json"):
-            try:
-                content = json.loads(path.read_text(encoding="utf-8"))
-                d = content.get("device", {})
-                if d:
-                    devices.append(
-                        DeviceInfo(
-                            device_id=d.get("device_id", path.stem),
-                            hostname=d.get("hostname", "unknown"),
-                            platform=d.get("platform", "unknown"),
-                            last_seen=d.get("last_seen", ""),
+        def _list_io() -> list[DeviceInfo]:
+            devices: list[DeviceInfo] = []
+            for path in self._sync_dir.glob("*.json"):
+                try:
+                    content = json.loads(path.read_text(encoding="utf-8"))
+                    d = content.get("device", {})
+                    if d:
+                        devices.append(
+                            DeviceInfo(
+                                device_id=d.get("device_id", path.stem),
+                                hostname=d.get("hostname", "unknown"),
+                                platform=d.get("platform", "unknown"),
+                                last_seen=d.get("last_seen", ""),
+                            )
                         )
-                    )
-            except (json.JSONDecodeError, OSError):
-                continue
-        return devices
+                except (json.JSONDecodeError, OSError):
+                    continue
+            return devices
+
+        return await asyncio.to_thread(_list_io)
 
     async def remove_device(self, device_id: str) -> bool:
         """Remove a device from the sync directory.
@@ -169,13 +182,16 @@ class SyncManager:
         Returns:
             True if device file was deleted.
         """
-        target = self._sync_dir / f"{device_id}.json"
-        if not target.exists():
-            return False
-        try:
-            target.unlink()
-            logger.info("Removed device: %s", device_id[:8])
-            return True
-        except OSError:
-            logger.exception("Failed to remove device file")
-            return False
+        def _remove_io() -> bool:
+            target = self._sync_dir / f"{device_id}.json"
+            if not target.exists():
+                return False
+            try:
+                target.unlink()
+                logger.info("Removed device: %s", device_id[:8])
+                return True
+            except OSError:
+                logger.exception("Failed to remove device file")
+                return False
+
+        return await asyncio.to_thread(_remove_io)

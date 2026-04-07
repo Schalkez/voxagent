@@ -9,7 +9,10 @@ from __future__ import annotations
 import asyncio
 import logging
 import platform
+import re
+import shlex
 import subprocess
+import unicodedata
 from typing import ClassVar
 
 from skills.base import BaseSkill, ExecutionTier, SkillIntent, SkillResult
@@ -23,6 +26,16 @@ COMMAND_TIMEOUT_S = 30
 
 BLOCKED_PATTERNS = frozenset({"rm -rf /", "format", "del /s /q"})
 
+ALLOWED_COMMAND_PREFIXES = frozenset({
+    "ls", "dir", "echo", "cat", "head", "tail", "wc",
+    "find", "grep", "git", "python", "pip", "node", "npm",
+    "pwd", "whoami", "date", "uptime", "df", "free",
+    "tasklist", "systeminfo", "ping"
+})
+
+DANGEROUS_SHELL_CHARS = re.compile(r'[;&|`$><\n]|\$\(')
+
+
 
 def _is_command_safe(command: str) -> bool:
     """Check if a command is safe to execute.
@@ -33,8 +46,22 @@ def _is_command_safe(command: str) -> bool:
     Returns:
         True if the command passes safety checks.
     """
+    command = unicodedata.normalize('NFKC', command)
+    if DANGEROUS_SHELL_CHARS.search(command):
+        return False
+
     command_lower = command.lower().strip()
-    return all(pattern not in command_lower for pattern in BLOCKED_PATTERNS)
+    if any(pattern in command_lower for pattern in BLOCKED_PATTERNS):
+        return False
+
+    try:
+        parts = shlex.split(command_lower, posix=not _IS_WINDOWS)
+        if not parts or parts[0] not in ALLOWED_COMMAND_PREFIXES:
+            return False
+    except ValueError:
+        return False  # Unclosed quotes or invalid shlex
+
+    return True
 
 
 @register_skill
@@ -107,10 +134,15 @@ class TerminalSkill(BaseSkill):
             )
 
         try:
+            cmd_args = shlex.split(command, posix=not _IS_WINDOWS)
+            # Handle Windows built-ins like 'dir' or 'echo' which fail without shell=True
+            if _IS_WINDOWS and cmd_args and cmd_args[0] in {"dir", "echo", "type"}:
+                cmd_args = ["cmd.exe", "/c", *cmd_args]
+
             result = await asyncio.to_thread(
                 subprocess.run,
-                command,
-                shell=True,
+                cmd_args,
+                shell=False,
                 capture_output=True,
                 text=True,
                 timeout=COMMAND_TIMEOUT_S,
@@ -121,7 +153,7 @@ class TerminalSkill(BaseSkill):
 
             if result.returncode == 0:
                 logger.info("Command succeeded: %s", command)
-                stdout[:200] if stdout else "(không có output)"
+                stdout = stdout[:200] if stdout else "(không có output)"
                 return SkillResult(
                     success=True,
                     tts_response="Đã chạy lệnh thành công.",
