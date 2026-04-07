@@ -30,11 +30,12 @@ class TestHandsTierFallback:
     """Test tier fallback behavior in Hands."""
 
     @pytest.mark.asyncio
-    async def test_all_tiers_fail(self) -> None:
+    async def test_all_tiers_fail(self, monkeypatch) -> None:
         from skills.registry import SkillRegistry
 
         registry = SkillRegistry()
-        registry._skills.clear()
+        # Use monkeypatch to isolate these changes
+        monkeypatch.setattr(SkillRegistry, "_skills", {})
         registry.register(FailSkill)
 
         hands = Hands()
@@ -46,7 +47,7 @@ class TestHandsTierFallback:
         assert "Tier" in (result.error or "")
 
     @pytest.mark.asyncio
-    async def test_can_handle_rejection(self) -> None:
+    async def test_can_handle_rejection(self, monkeypatch) -> None:
         """If skill.can_handle returns False, should fail gracefully."""
 
         class RejectSkill(BaseSkill):
@@ -63,7 +64,8 @@ class TestHandsTierFallback:
         from skills.registry import SkillRegistry
 
         registry = SkillRegistry()
-        registry._skills.clear()
+        # Use monkeypatch to isolate these changes
+        monkeypatch.setattr(SkillRegistry, "_skills", {})
         registry.register(RejectSkill)
 
         hands = Hands()

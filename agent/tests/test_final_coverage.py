@@ -11,7 +11,7 @@ class TestHandsCoverage:
     """Push core/hands.py coverage higher."""
 
     @pytest.mark.asyncio
-    async def test_dangerous_action_no_mouth(self) -> None:
+    async def test_dangerous_action_no_mouth(self, monkeypatch) -> None:
         """Dangerous action without mouth/ears should skip confirmation."""
         # Ensure dummy is registered
         from typing import ClassVar
@@ -32,7 +32,8 @@ class TestHandsCoverage:
                 return SkillResult(success=True, tier_used=ExecutionTier.NATIVE_API)
 
         registry = SkillRegistry()
-        registry._skills.clear()
+        # Use monkeypatch to isolate these changes
+        monkeypatch.setattr(SkillRegistry, "_skills", {})
         registry.register(ConfirmSkill)
 
         hands = Hands()
@@ -245,6 +246,8 @@ class TestSkillRegistryCoverage:
 
     def test_get_all_skills(self) -> None:
         from skills.registry import registry
+        # Ensure registry is populated
+        registry.discover_skills()
 
         all_skills = registry.get_all_skills()
         assert isinstance(all_skills, dict)
@@ -252,6 +255,8 @@ class TestSkillRegistryCoverage:
 
     def test_get_all_skills_has_entries(self) -> None:
         from skills.registry import registry
+        # Ensure registry is populated
+        registry.discover_skills()
 
         all_skills = registry.get_all_skills()
         assert isinstance(all_skills, dict)
