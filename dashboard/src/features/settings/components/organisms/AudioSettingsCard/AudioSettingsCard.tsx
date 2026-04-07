@@ -1,4 +1,4 @@
-import { Input } from '@shared/components/atoms';
+import { Input, Slider, Text } from '@shared/components/atoms';
 import type { SystemSettings } from '@features/settings/types';
 import { STT_PROVIDERS, TTS_PROVIDERS, WAKE_WORD_ENGINES, SUPPORTED_LANGUAGES } from '@features/settings/constants';
 
@@ -13,16 +13,16 @@ export function AudioSettingsCard({ stt, tts, wakeWord, onChange }: AudioSetting
   return (
     <div className="bg-slate-800/40 rounded-xl border border-slate-700/50 p-6 shadow-sm backdrop-blur-sm">
       <div className="flex items-center gap-3 mb-6">
-        <span className="material-symbols-rounded text-indigo-400">mic</span>
-        <h3 className="text-lg font-semibold text-white">Audio & Voice Ops</h3>
+        <span className="material-symbols-rounded text-cyan-400">mic</span>
+        <Text variant="headline" className="text-lg">Audio & Voice Ops</Text>
       </div>
       
       <div className="space-y-6">
         <div>
-          <h4 className="text-sm font-medium text-slate-400 mb-3">Wake Word Detection</h4>
+          <Text variant="label" className="block mb-3 opacity-60">Wake Word Detection</Text>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Engine</label>
+              <Text variant="label" as="label" className="block mb-2 py-px">Engine</Text>
               <select 
                 className="w-full px-3 py-2 bg-slate-900 border border-slate-700/50 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500"
                 value={wakeWord.engine}
@@ -32,17 +32,15 @@ export function AudioSettingsCard({ stt, tts, wakeWord, onChange }: AudioSetting
               </select>
             </div>
             <div className="space-y-1">
-              <label className="text-sm font-medium text-slate-300">Sensitivity ({wakeWord.sensitivity})</label>
-              <input 
-                type="range" 
-                min="0.1" max="1.0" step="0.1" 
+              <Text variant="label" as="label" className="block mb-2">Sensitivity ({wakeWord.sensitivity})</Text>
+              <Slider 
+                min={0.1} max={1.0} step={0.1} 
                 value={wakeWord.sensitivity}
                 onChange={(e) => onChange('wake_word', 'sensitivity', parseFloat(e.target.value))}
-                className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer"
               />
             </div>
-            <div className="space-y-1">
-              <label className="block text-xs font-medium text-slate-300 mb-1">Wake Phrase</label>
+            <div className="space-y-1 py-px">
+              <Text variant="label" as="label" className="block mb-2">Wake Phrase</Text>
               <Input 
                 value={wakeWord.phrase}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange('wake_word', 'phrase', e.target.value)}
@@ -55,10 +53,10 @@ export function AudioSettingsCard({ stt, tts, wakeWord, onChange }: AudioSetting
         <div className="h-px bg-slate-700/50 w-full" />
 
         <div>
-          <h4 className="text-sm font-medium text-slate-400 mb-3">Speech-to-Text</h4>
+          <Text variant="label" className="block mb-3 opacity-60">Speech-to-Text</Text>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">STT Provider</label>
+              <Text variant="label" as="label" className="block mb-2 py-px">STT Provider</Text>
               <select 
                 className="w-full px-3 py-2 bg-slate-900 border border-slate-700/50 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500"
                 value={stt.provider}
@@ -68,7 +66,7 @@ export function AudioSettingsCard({ stt, tts, wakeWord, onChange }: AudioSetting
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Default Language</label>
+              <Text variant="label" as="label" className="block mb-2 py-px">Default Language</Text>
               <select 
                 className="w-full px-3 py-2 bg-slate-900 border border-slate-700/50 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500"
                 value={stt.language}
@@ -78,7 +76,7 @@ export function AudioSettingsCard({ stt, tts, wakeWord, onChange }: AudioSetting
               </select>
             </div>
             <div className="space-y-1">
-              <label className="block text-xs font-medium text-slate-300 mb-1">Model</label>
+              <Text variant="label" as="label" className="block mb-2">Model</Text>
               <Input 
                 value={stt.model}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange('stt', 'model', e.target.value)}
@@ -90,10 +88,10 @@ export function AudioSettingsCard({ stt, tts, wakeWord, onChange }: AudioSetting
         <div className="h-px bg-slate-700/50 w-full" />
 
         <div>
-           <h4 className="text-sm font-medium text-slate-400 mb-3">Text-to-Speech</h4>
+           <Text variant="label" className="block mb-3 opacity-60">Text-to-Speech</Text>
            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">TTS Provider</label>
+              <Text variant="label" as="label" className="block mb-2 py-px">TTS Provider</Text>
               <select 
                 className="w-full px-3 py-2 bg-slate-900 border border-slate-700/50 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500"
                 value={tts.provider}
@@ -103,20 +101,18 @@ export function AudioSettingsCard({ stt, tts, wakeWord, onChange }: AudioSetting
               </select>
             </div>
             <div className="space-y-1">
-              <label className="block text-xs font-medium text-slate-300 mb-1">Voice Profile</label>
+              <Text variant="label" as="label" className="block mb-2">Voice Profile</Text>
               <Input 
                 value={tts.voice}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange('tts', 'voice', e.target.value)}
               />
             </div>
             <div className="space-y-1">
-              <label className="text-sm font-medium text-slate-300">Speaking Speed ({tts.speed}x)</label>
-              <input 
-                type="range" 
-                min="0.5" max="2.0" step="0.1" 
+              <Text variant="label" as="label" className="block mb-2">Speaking Speed ({tts.speed}x)</Text>
+              <Slider 
+                min={0.5} max={2.0} step={0.1} 
                 value={tts.speed}
                 onChange={(e) => onChange('tts', 'speed', parseFloat(e.target.value))}
-                className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer"
               />
             </div>
            </div>
