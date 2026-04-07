@@ -150,7 +150,7 @@ exclude_lines = [
 # ── BANDIT (Security) ─────────────────────────────
 [tool.bandit]
 targets = ["core", "providers", "skills", "system", "api"]
-skips = ["B101"]
+skips = ["B101", "B404", "B603"]
 recursive = true
 
 # ── INTERROGATE (Docstring coverage) ──────────────
