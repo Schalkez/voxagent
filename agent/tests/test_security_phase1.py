@@ -25,7 +25,7 @@ def test_terminal_security():
 
     # Unicode bypass attempt normalization check
     # fullwidth semicolon will normalize to normal semicolon, which is blocked
-    assert _is_command_safe("echo hello ； whoami") is False
+    assert _is_command_safe("echo hello ； whoami") is False  # noqa: RUF001
 
     # Unclosed quotes (shlex failure)
     assert _is_command_safe("echo \"unclosed quote") is False
