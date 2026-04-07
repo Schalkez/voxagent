@@ -7,7 +7,7 @@ from skills.terminal import TerminalSkill, _is_command_safe
 def test_terminal_security():
     # Safe allowed commands
     assert _is_command_safe("echo hello") is True
-    assert _is_command_safe("dir C:\\") is True
+    assert _is_command_safe("dir C:/") is True
     assert _is_command_safe("git status") is True
 
     # Blocked by missing prefix (not in whitelist)
