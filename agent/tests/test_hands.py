@@ -21,7 +21,7 @@ class DummySkill(BaseSkill):
 
 
 @pytest.fixture
-def mock_registry(_monkeypatch):
+def _mock_registry(monkeypatch):
     registry = SkillRegistry()
     registry._skills.clear() # Reset for test
     registry.register(DummySkill)
