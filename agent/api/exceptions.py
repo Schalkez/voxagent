@@ -1,7 +1,5 @@
 """Global custom exceptions for the VoxAgent API."""
 
-from typing import Any
-
 from fastapi import HTTPException
 
 
@@ -13,7 +11,7 @@ class VoxAPIException(HTTPException):
         message: str,
         status_code: int = 400,
         code: str = "bad_request",
-        details: Any | None = None,
+        details: dict[str, object] | None = None,
     ):
         super().__init__(status_code=status_code, detail=message)
         self.code = code
@@ -23,7 +21,7 @@ class VoxAPIException(HTTPException):
 class ProviderConfigError(VoxAPIException):
     """Exception raised when there's an error with a provider's configuration."""
 
-    def __init__(self, message: str, details: Any | None = None):
+    def __init__(self, message: str, details: dict[str, object] | None = None):
         super().__init__(
             message=message, status_code=400, code="provider_config_error", details=details
         )

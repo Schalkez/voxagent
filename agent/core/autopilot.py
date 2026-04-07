@@ -11,7 +11,6 @@ import logging
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
 
 logger = logging.getLogger("voxagent.autopilot")
 
@@ -54,7 +53,7 @@ class AutopilotTask:
     description: str
     trigger_type: TriggerType
     condition: Callable[[], bool]
-    actions: list[Callable[[], Any]]
+    actions: list[Callable[[], object]]
     repeat: bool = False
     max_retries: int = 3
     timeout_seconds: int = 300

@@ -10,7 +10,6 @@ import asyncio
 import io
 import logging
 import time
-from typing import Any
 
 from providers.base import STTProvider, TranscribeResult
 
@@ -39,7 +38,7 @@ class WhisperLocalProvider(STTProvider):
         self._model_size = model_size if model_size in _SUPPORTED_SIZES else _DEFAULT_MODEL_SIZE
         self._device = device
         self._compute_type = compute_type
-        self._model: Any = None
+        self._model: object = None
 
     def _ensure_model(self) -> None:
         """Lazy-load the Whisper model on first use."""
@@ -74,7 +73,7 @@ class WhisperLocalProvider(STTProvider):
 
         start_ms = time.monotonic()
 
-        def _transcribe_blocking() -> tuple[str, Any]:
+        def _transcribe_blocking() -> tuple[str, object]:
             audio_file = io.BytesIO(audio)
             segments, info = self._model.transcribe(
                 audio_file,

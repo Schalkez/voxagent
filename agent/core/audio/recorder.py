@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -46,7 +46,7 @@ class AudioRecorder:
         self._sample_rate = sample_rate
         self._channels = channels
         self._chunk_samples = chunk_samples
-        self._stream: Any | None = None
+        self._stream: object = None
         self._audio_queue: asyncio.Queue[np.ndarray] = asyncio.Queue()
 
     @property

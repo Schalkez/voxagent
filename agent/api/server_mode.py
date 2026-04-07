@@ -7,18 +7,102 @@ without audio I/O, enabling integration with n8n, Home Assistant, etc.
 from __future__ import annotations
 
 import logging
+import os
+import time
+from collections import defaultdict
 
 import uvicorn
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from api.server import app
 
 logger = logging.getLogger("voxagent.api.server_mode")
 
+# --- Constants ---
+API_KEY_HEADER = "X-VoxAgent-Key"
+RATE_LIMIT_MAX_REQUESTS = 60
+RATE_LIMIT_WINDOW_SECONDS = 60
+
+# --- In-memory rate limit store: {ip: [timestamp, ...]} ---
+_rate_limit_store: dict[str, list[float]] = defaultdict(list)
+
+
+def _get_client_ip(request: Request) -> str:
+    """Extract client IP from the request.
+
+    Args:
+        request: The incoming FastAPI request.
+
+    Returns:
+        Client IP address string.
+    """
+    if not request.client:
+        return "unknown"
+    return request.client.host
+
+
+def _check_rate_limit(request: Request) -> None:
+    """Enforce per-IP rate limiting (max 60 requests/minute).
+
+    Args:
+        request: The incoming FastAPI request.
+
+    Raises:
+        HTTPException: 429 if rate limit exceeded.
+    """
+    client_ip = _get_client_ip(request)
+    now = time.monotonic()
+    cutoff = now - RATE_LIMIT_WINDOW_SECONDS
+
+    # Prune expired timestamps
+    timestamps = _rate_limit_store[client_ip]
+    _rate_limit_store[client_ip] = [t for t in timestamps if t > cutoff]
+
+    if len(_rate_limit_store[client_ip]) >= RATE_LIMIT_MAX_REQUESTS:
+        raise HTTPException(status_code=429, detail="Rate limit exceeded")
+
+    _rate_limit_store[client_ip].append(now)
+
+
+def _check_api_key(request: Request) -> None:
+    """Validate API key from request header.
+
+    Auth is disabled when VOXAGENT_API_KEY env var is not set (open access).
+
+    Args:
+        request: The incoming FastAPI request.
+
+    Raises:
+        HTTPException: 401 if key is missing or invalid.
+    """
+    expected_key = os.environ.get("VOXAGENT_API_KEY")
+    if not expected_key:
+        return
+
+    provided_key = request.headers.get(API_KEY_HEADER)
+    if not provided_key:
+        raise HTTPException(status_code=401, detail="Missing API key")
+    if provided_key != expected_key:
+        raise HTTPException(status_code=401, detail="Invalid API key")
+
+
 server_router = APIRouter(prefix="/api", tags=["server-mode"])
 
 
-@server_router.post("/command")
+@server_router.get("/server/health")
+async def health_check() -> dict[str, str]:
+    """Return server health status.
+
+    Returns:
+        JSON with status 'ok'.
+    """
+    return {"status": "ok"}
+
+
+@server_router.post(
+    "/command",
+    dependencies=[Depends(_check_rate_limit), Depends(_check_api_key)],
+)
 async def execute_command(body: dict[str, str]) -> dict[str, object]:
     """Execute a text command and return the skill result.
 

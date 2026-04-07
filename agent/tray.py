@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 import threading
 import webbrowser
-from typing import Any
+from collections.abc import Callable
 
 logger = logging.getLogger("voxagent.tray")
 
@@ -21,7 +21,7 @@ _COLOR_STOPPED = (158, 158, 158)  # Gray
 _COLOR_ERROR = (244, 67, 54)  # Red
 
 
-def _create_icon_image(color: tuple[int, int, int], size: int = 64) -> Any:
+def _create_icon_image(color: tuple[int, int, int], size: int = 64) -> object:
     """Create a simple colored circle icon.
 
     Args:
@@ -56,14 +56,14 @@ class TrayApp:
     def __init__(self) -> None:
         """Initialize the tray application."""
         self._listening = False
-        self._icon: Any = None
-        self._on_start_callback: Any = None
-        self._on_stop_callback: Any = None
+        self._icon: object = None
+        self._on_start_callback: Callable[[], None] | None = None
+        self._on_stop_callback: Callable[[], None] | None = None
 
     def set_callbacks(
         self,
-        on_start: Any = None,
-        on_stop: Any = None,
+        on_start: Callable[[], None] | None = None,
+        on_stop: Callable[[], None] | None = None,
     ) -> None:
         """Set callbacks for tray menu actions.
 
@@ -130,25 +130,25 @@ class TrayApp:
             self._icon.icon = _create_icon_image(color)
             self._icon.update_menu()
 
-    def _on_start(self, icon: Any, item: Any) -> None:
+    def _on_start(self, icon: object, item: object) -> None:
         """Handle 'Start Listening' menu click."""
         self._listening = True
         self.update_status(listening=True)
         if self._on_start_callback:
             self._on_start_callback()
 
-    def _on_stop(self, icon: Any, item: Any) -> None:
+    def _on_stop(self, icon: object, item: object) -> None:
         """Handle 'Stop Listening' menu click."""
         self._listening = False
         self.update_status(listening=False)
         if self._on_stop_callback:
             self._on_stop_callback()
 
-    def _on_open_dashboard(self, icon: Any, item: Any) -> None:
+    def _on_open_dashboard(self, icon: object, item: object) -> None:
         """Handle 'Open Dashboard' menu click."""
         webbrowser.open(_DASHBOARD_URL)
 
-    def _on_quit(self, icon: Any, item: Any) -> None:
+    def _on_quit(self, icon: object, item: object) -> None:
         """Handle 'Quit' menu click."""
         self._listening = False
         if self._icon is not None:

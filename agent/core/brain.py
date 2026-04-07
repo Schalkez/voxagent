@@ -13,7 +13,7 @@ import json
 import logging
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from providers.base import Message
 from providers.registry import ProviderNotFoundError, ProviderRegistry
@@ -63,7 +63,7 @@ class Brain:
         self,
         registry: ProviderRegistry,
         skills: list[BaseSkill],
-        routing_config: dict[str, Any] | None = None,
+        routing_config: dict[str, object] | None = None,
         config: VoxAgentConfig | None = None,
     ) -> None:
         """Initialize the Brain orchestrator.
@@ -79,7 +79,7 @@ class Brain:
 
         if config is not None:
             # Extract routing tiers from config into dict format
-            self.routing_config: dict[str, Any] = {
+            self.routing_config: dict[str, object] = {
                 "tiers": [
                     {"provider": config.routing.tier_1.provider, "model": config.routing.tier_1.model},
                     {"provider": config.routing.tier_2.provider, "model": config.routing.tier_2.model},
@@ -194,7 +194,7 @@ class Brain:
         """Convert loaded skills to OpenAI-compatible Tools JSON Schema."""
         tools: list[dict[str, object]] = []
         for skill_name, skill in self.skills.items():
-            tool: dict[str, Any] = {
+            tool: dict[str, object] = {
                 "type": "function",
                 "function": {
                     "name": skill_name,

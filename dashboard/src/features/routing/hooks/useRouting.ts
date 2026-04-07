@@ -41,24 +41,37 @@ export function useRoutingConfig() {
   return { config, loading, error, setConfig };
 }
 
-export function useSaveRoutingConfig() {
+export function useSaveRoutingConfig(
+  setConfig: (config: RoutingConfig | null) => void,
+) {
   const [saving, setSaving] = useState(false);
 
-  const saveConfig = useCallback(async (config: RoutingConfig) => {
-    setSaving(true);
-    try {
-      await fetchApi('/api/routing', {
-        method: 'PUT',
-        body: JSON.stringify(config),
-      });
-      return { success: true };
-    } catch (err) {
-      console.error('[Routing] Save failed:', err);
-      return { success: false };
-    } finally {
-      setSaving(false);
-    }
-  }, []);
+  const saveConfig = useCallback(
+    async (config: RoutingConfig) => {
+      setSaving(true);
+      try {
+        await fetchApi('/api/routing', {
+          method: 'PUT',
+          body: JSON.stringify(config),
+        });
+        return { success: true };
+      } catch (err) {
+        console.error('[Routing] Save failed:', err);
+        // Re-fetch config from server to rollback local state
+        try {
+          const freshConfig =
+            await fetchApi<RoutingConfig>('/api/routing');
+          setConfig(freshConfig);
+        } catch {
+          setConfig(MOCK_ROUTING_CONFIG);
+        }
+        return { success: false };
+      } finally {
+        setSaving(false);
+      }
+    },
+    [setConfig],
+  );
 
   return { saveConfig, saving };
 }

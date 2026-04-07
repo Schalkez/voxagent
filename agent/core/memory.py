@@ -29,6 +29,13 @@ CREATE TABLE IF NOT EXISTS preferences (
     value TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS skill_state (
+    skill_name TEXT NOT NULL,
+    key TEXT NOT NULL,
+    value TEXT NOT NULL,
+    PRIMARY KEY (skill_name, key)
+);
+
 CREATE TABLE IF NOT EXISTS schema_version (
     version INTEGER NOT NULL
 );
@@ -198,3 +205,64 @@ class Memory:
             row = await cursor.fetchone()
 
         return int(row[0]) if row is not None else 0
+
+    async def set_skill_state(self, skill_name: str, key: str, value: str) -> None:
+        """Store a skill-specific state value.
+
+        Args:
+            skill_name: Name of the skill.
+            key: State key.
+            value: State value.
+        """
+        if self._db is None:
+            return
+
+        await self._db.execute(
+            "INSERT OR REPLACE INTO skill_state (skill_name, key, value) VALUES (?, ?, ?)",
+            (skill_name, key, value),
+        )
+        await self._db.commit()
+
+    async def get_skill_state(self, skill_name: str, key: str, default: str | None = None) -> str | None:
+        """Retrieve a skill-specific state value.
+
+        Args:
+            skill_name: Name of the skill.
+            key: State key.
+            default: Fallback if not found.
+
+        Returns:
+            The stored value, or default if not set.
+        """
+        if self._db is None:
+            return default
+
+        async with self._db.execute(
+            "SELECT value FROM skill_state WHERE skill_name = ? AND key = ?",
+            (skill_name, key),
+        ) as cursor:
+            row = await cursor.fetchone()
+
+        if row is None:
+            return default
+        return str(row[0])
+
+    async def get_all_skill_state(self, skill_name: str) -> dict[str, str]:
+        """Retrieve all state entries for a skill.
+
+        Args:
+            skill_name: Name of the skill.
+
+        Returns:
+            Dict of key-value pairs for the skill.
+        """
+        if self._db is None:
+            return {}
+
+        async with self._db.execute(
+            "SELECT key, value FROM skill_state WHERE skill_name = ?",
+            (skill_name,),
+        ) as cursor:
+            rows = await cursor.fetchall()
+
+        return {str(row[0]): str(row[1]) for row in rows}

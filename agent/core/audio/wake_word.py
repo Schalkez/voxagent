@@ -6,7 +6,6 @@ Single responsibility: detect wake word in audio stream.
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 import numpy as np
 
@@ -29,7 +28,7 @@ class WakeWordDetector:
 
     def __init__(self, sensitivity: float = DEFAULT_SENSITIVITY) -> None:
         self._sensitivity = sensitivity
-        self._model: Any | None = None
+        self._model: object = None
 
     def load(self) -> None:
         """Load the OpenWakeWord model.

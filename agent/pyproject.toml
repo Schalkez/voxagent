@@ -144,6 +144,7 @@ omit = [
     "core/app.py",                 # Requires full system (audio, tray, etc.)
     "core/ears.py",                # Requires audio hardware
     "core/ocr.py",                 # Requires PaddleOCR/Tesseract
+    "core/planner.py",             # Requires LLM provider for planning
     "skills/marketplace.py",       # Requires network registry
     "api/server_mode.py",          # Integration-level test only
 ]

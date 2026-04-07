@@ -1,11 +1,65 @@
-"""In-Memory State Store for API.
+"""Persistent State Store for API.
 
-Will be replaced by a proper database or file persistent storage mapping later.
+State is loaded from ~/.voxagent/state.yaml on import and written back
+after every mutation. Falls back to hardcoded defaults on first run.
 """
 
-from typing import Any
+from __future__ import annotations
 
-# Provider Metadata
+import logging
+from pathlib import Path
+from tempfile import NamedTemporaryFile
+from typing import TypedDict
+
+import yaml
+
+logger = logging.getLogger("voxagent.api.state")
+
+_STATE_FILE = Path.home() / ".voxagent" / "state.yaml"
+
+
+class PermissionEntry(TypedDict):
+    """A single permission entry."""
+
+    name: str
+    level: str
+
+
+class TierEntry(TypedDict, total=False):
+    """A routing tier configuration."""
+
+    tier: int
+    title: str
+    description: str
+    provider: str
+    model: str
+    provider_options: list[str]
+    model_options: list[str]
+    warning: str
+
+
+class RoutingConfigState(TypedDict):
+    """Full routing configuration."""
+
+    preset: str
+    tiers: list[TierEntry]
+    status: str
+
+
+class SkillEntry(TypedDict):
+    """A skill's full state."""
+
+    id: str
+    name: str
+    icon: str
+    version: str
+    author: str
+    description: str
+    enabled: bool
+    permissions: list[PermissionEntry]
+
+
+# Provider Metadata (static — not persisted)
 PROVIDER_META: dict[str, dict[str, str]] = {
     "openai": {"name": "OpenAI", "icon": "psychology", "type": "cloud"},
     "groq": {"name": "Groq", "icon": "bolt", "type": "cloud"},
@@ -18,35 +72,36 @@ PROVIDER_META: dict[str, dict[str, str]] = {
 }
 
 
-# Routing State
-routing_config_state: dict[str, Any] = {
+# ── Default State ──
+
+_DEFAULT_ROUTING: RoutingConfigState = {
     "preset": "balanced",
     "tiers": [
         {
             "tier": 1,
             "title": "Tier 1 (Speed & Simple)",
             "description": "Fastest. Used for simple intents, parsing, and extraction.",
-            "provider": "Groq",
+            "provider": "groq",
             "model": "llama-3.1-8b-instant",
-            "provider_options": ["Groq", "OpenAI", "Mistral"],
+            "provider_options": ["groq", "openai", "mistral"],
             "model_options": ["llama-3.1-8b-instant", "mixtral-8x7b-32768", "gemma-7b-it"],
         },
         {
             "tier": 2,
             "title": "Tier 2 (Reasoning)",
             "description": "Balanced. Used for logic, file management, and multi-step plans.",
-            "provider": "Ollama",
+            "provider": "ollama",
             "model": "qwen2.5:7b",
-            "provider_options": ["Ollama", "Azure AI", "AWS Bedrock"],
+            "provider_options": ["ollama", "deepseek", "openrouter"],
             "model_options": ["qwen2.5:7b", "llama3:8b-instruct", "mistral-v0.3"],
         },
         {
             "tier": 3,
             "title": "Tier 3 (Complex & Vision)",
-            "description": "Heavy lifting. Used for code review, screen reading, and complex problem solving.",
-            "provider": "Anthropic",
+            "description": "Heavy lifting. Used for code review, screen reading, and complex tasks.",
+            "provider": "anthropic",
             "model": "claude-3-5-sonnet",
-            "provider_options": ["Anthropic", "Google Vertex", "OpenAI"],
+            "provider_options": ["anthropic", "openai", "gemini"],
             "model_options": ["claude-3-5-sonnet", "gpt-4o-2024-08-06", "gemini-1.5-pro"],
             "warning": "High Cost",
         },
@@ -54,9 +109,7 @@ routing_config_state: dict[str, Any] = {
     "status": "Optimized for latency",
 }
 
-
-# Skills State
-skills_state: list[dict[str, Any]] = [
+_DEFAULT_SKILLS: list[SkillEntry] = [
     {
         "id": "youtube_ad_skipper",
         "name": "YouTube Ad Skipper",
@@ -122,3 +175,47 @@ skills_state: list[dict[str, Any]] = [
         ],
     },
 ]
+
+
+# ── Persistence ──
+
+
+def _load_state() -> tuple[RoutingConfigState, list[SkillEntry]]:
+    """Load state from YAML file, falling back to defaults."""
+    if not _STATE_FILE.exists():
+        return _DEFAULT_ROUTING.copy(), list(_DEFAULT_SKILLS)
+
+    try:
+        raw = yaml.safe_load(_STATE_FILE.read_text(encoding="utf-8")) or {}
+        routing = raw.get("routing", _DEFAULT_ROUTING)
+        skills = raw.get("skills", _DEFAULT_SKILLS)
+        return routing, skills
+    except (yaml.YAMLError, OSError):
+        logger.warning("Corrupt state file — using defaults")
+        return _DEFAULT_ROUTING.copy(), list(_DEFAULT_SKILLS)
+
+
+def save_state() -> None:
+    """Persist current routing + skills state to YAML atomically."""
+    _STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    data = {"routing": dict(routing_config_state), "skills": list(skills_state)}
+    try:
+        with NamedTemporaryFile(
+            mode="w",
+            dir=_STATE_FILE.parent,
+            suffix=".yaml",
+            delete=False,
+            encoding="utf-8",
+        ) as tmp:
+            yaml.safe_dump(data, tmp, default_flow_style=False, allow_unicode=True)
+            tmp_path = Path(tmp.name)
+        tmp_path.replace(_STATE_FILE)
+    except OSError:
+        logger.exception("Failed to save state")
+
+
+# ── Module-level state (loaded on import) ──
+
+_routing, _skills = _load_state()
+routing_config_state: RoutingConfigState = _routing
+skills_state: list[SkillEntry] = _skills

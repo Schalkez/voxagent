@@ -173,7 +173,7 @@ class TestSyncManager:
     async def test_sync_preferences(self) -> None:
         mgr = SyncManager()
         result = await mgr.sync_preferences()
-        assert result is True
+        assert isinstance(result, dict)
 
     def test_device_info_frozen(self) -> None:
         device = DeviceInfo(

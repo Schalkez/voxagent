@@ -9,7 +9,6 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import Any
 
 import yaml
 
@@ -139,14 +138,14 @@ class VoxAgentConfig:
     security: SecurityConfig = field(default_factory=SecurityConfig)
 
 
-def _parse_provider(data: dict[str, Any]) -> ProviderConfig:
+def _parse_provider(data: dict[str, str]) -> ProviderConfig:
     return ProviderConfig(
         model=data.get("model", ""),
         base_url=data.get("base_url", ""),
     )
 
 
-def _parse_tier(data: dict[str, Any]) -> RoutingTierConfig:
+def _parse_tier(data: dict[str, str]) -> RoutingTierConfig:
     return RoutingTierConfig(
         type=data.get("type", ""),
         provider=data.get("provider", ""),
@@ -180,7 +179,7 @@ def load_config(config_dir: Path | None = None) -> VoxAgentConfig:
         else:
             return VoxAgentConfig()
 
-    raw: dict[str, Any] = yaml.safe_load(config_file.read_text(encoding="utf-8")) or {}
+    raw: dict[str, object] = yaml.safe_load(config_file.read_text(encoding="utf-8")) or {}
 
     # Parse providers
     providers: dict[str, ProviderConfig] = {}
@@ -255,7 +254,7 @@ def save_config(config: VoxAgentConfig, config_dir: Path | None = None) -> None:
 
 # ── Built-in Profiles ──
 
-_PROFILES: dict[str, dict[str, Any]] = {
+_PROFILES: dict[str, dict[str, object]] = {
     "full_local": {
         "description": "Fully local — no API keys needed. Uses Ollama + Whisper + Piper.",
         "providers": {

@@ -7,7 +7,6 @@ Uses Silero VAD (ONNX) with energy-based fallback.
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 import numpy as np
 
@@ -40,7 +39,7 @@ class VoiceActivityDetector:
     ) -> None:
         self._speech_threshold = speech_threshold
         self._energy_threshold = energy_threshold
-        self._model: Any | None = None
+        self._model: object = None
 
     def load(self) -> None:
         """Load the Silero VAD model via ONNX Runtime.

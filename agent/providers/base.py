@@ -110,12 +110,15 @@ class STTProvider(ABC):
     """Abstract base class for Speech-to-Text providers."""
 
     @abstractmethod
-    async def transcribe(self, audio: bytes, language: str = "vi") -> TranscribeResult:
+    async def transcribe(
+        self, audio: bytes, language: str = "vi", task: str = "transcribe"
+    ) -> TranscribeResult:
         """Transcribe audio bytes to text.
 
         Args:
             audio: Raw audio data (WAV format).
             language: Target language code for transcription.
+            task: Task type — 'transcribe' or 'translate' (to English).
 
         Returns:
             TranscribeResult with text and metadata.

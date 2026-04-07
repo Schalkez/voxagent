@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING
 
 from api.exceptions import VoxAPIException
 from skills.base import ExecutionTier, SkillIntent, SkillResult
+from skills.permissions import PermissionLevel, PermissionManager
 from skills.registry import registry as skill_registry
 
 if TYPE_CHECKING:
@@ -63,21 +64,25 @@ class Hands:
     Iterates through a skill's declared execution tiers (A→D)
     and uses the first one that succeeds. Dangerous actions
     require voice confirmation before execution.
+    Permission checks enforce skill-level access control.
     """
 
     def __init__(
         self,
         mouth: Mouth | None = None,
         ears: Ears | None = None,
+        permission_manager: PermissionManager | None = None,
     ) -> None:
         """Initialize the Hands module.
 
         Args:
             mouth: Mouth module for voice confirmation prompts.
             ears: Ears module for listening to confirmation responses.
+            permission_manager: Optional PermissionManager for access control.
         """
         self._mouth = mouth
         self._ears = ears
+        self._perm_mgr = permission_manager or PermissionManager()
 
     async def execute(self, intent: SkillIntent) -> SkillResult:
         """Execute an action using the loaded skills.
@@ -106,6 +111,18 @@ class Hands:
                 success=False,
                 error=str(e),
                 tts_response="Tôi không tìm thấy kỹ năng này.",
+            )
+
+        # 1.5 Permission enforcement
+        perms = self._perm_mgr.get_required_permissions(skill)
+        blocked = [p for p in perms if p.level == PermissionLevel.DANGEROUS]
+        if blocked and not self._perm_mgr.check_permission(skill, blocked[0].name):
+            names = ", ".join(p.name for p in blocked)
+            logger.warning("Skill '%s' blocked — missing dangerous permissions: %s", skill.name, names)
+            return SkillResult(
+                success=False,
+                error=f"Permission denied: {names}",
+                tts_response="Kỹ năng này cần quyền truy cập nguy hiểm mà chưa được cấp.",
             )
 
         # 2. Check can handle
