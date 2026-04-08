@@ -2,9 +2,9 @@ import sys
 from unittest.mock import MagicMock
 
 # ── TOP-LEVEL MOCK ───────────────────────────────────────────────────────────
-# We MUST patch 'keyring' at the module level in conftest.py. 
+# We MUST patch 'keyring' at the module level in conftest.py.
 # conftest.py is loaded by pytest before it imports any test modules.
-# Since test modules often import our application server (which imports 
+# Since test modules often import our application server (which imports
 # providers that import keyring), a fixture-based mock would be too late.
 
 mock_keyring_obj = MagicMock()
