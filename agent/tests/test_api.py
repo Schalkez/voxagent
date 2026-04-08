@@ -1,5 +1,7 @@
 """Tests for the FastAPI management server."""
 
+from collections.abc import Generator
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -7,9 +9,10 @@ from api.server import app
 
 
 @pytest.fixture
-def client() -> TestClient:
-    """Create a test client for the FastAPI app."""
-    return TestClient(app)
+def client() -> Generator[TestClient, None, None]:
+    """Create a test client for the FastAPI app with lifespan context."""
+    with TestClient(app) as client:
+        yield client
 
 
 class TestProviderEndpoints:
