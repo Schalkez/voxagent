@@ -13,7 +13,7 @@ import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from api.exceptions import VoxAPIException
+from core.errors import SkillError, VoxError
 from skills.base import ExecutionTier, SkillIntent, SkillResult
 from skills.permissions import PermissionLevel, PermissionManager
 from skills.registry import registry as skill_registry
@@ -106,7 +106,7 @@ class Hands:
         # 1. Fetch skill from registry
         try:
             skill = skill_registry.get_skill(intent.skill_name)
-        except (VoxAPIException, KeyError, ValueError) as e:
+        except (SkillError, KeyError, ValueError) as e:
             return SkillResult(
                 success=False,
                 error=str(e),
@@ -141,7 +141,7 @@ class Hands:
                 if result.success:
                     return result
                 last_error = result.error
-            except (RuntimeError, OSError, TypeError, ValueError) as exc:
+            except (VoxError, RuntimeError, OSError, TypeError, ValueError) as exc:
                 last_error = f"Tier {tier.value} failed: {exc}"
                 logger.warning(last_error)
                 continue
@@ -196,6 +196,6 @@ class Hands:
 
             logger.info("Unclear confirmation response '%s' — defaulting to deny", answer)
             return False
-        except (TimeoutError, RuntimeError, OSError):
+        except (VoxError, TimeoutError, RuntimeError, OSError):
             logger.exception("Error during confirmation — defaulting to deny")
             return False
