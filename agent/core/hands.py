@@ -14,7 +14,15 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from core.errors import SkillError, VoxError
-from skills.base import ExecutionTier, SkillIntent, SkillResult
+from skills.base import (
+    SKILL_ERR_CANCELLED,
+    SKILL_ERR_NOT_FOUND,
+    SKILL_ERR_PERMISSION_DENIED,
+    SKILL_ERR_UNSUPPORTED_ACTION,
+    ExecutionTier,
+    SkillIntent,
+    SkillResult,
+)
 from skills.permissions import PermissionLevel, PermissionManager
 from skills.registry import registry as skill_registry
 
@@ -99,6 +107,8 @@ class Hands:
                 return SkillResult(
                     success=False,
                     error="User cancelled dangerous action",
+                    error_code=SKILL_ERR_CANCELLED,
+                    error_severity="info",
                     cancelled=True,
                     tts_response="Đã hủy thao tác.",
                 )
@@ -107,10 +117,10 @@ class Hands:
         try:
             skill = skill_registry.get_skill(intent.skill_name)
         except (SkillError, KeyError, ValueError) as e:
-            return SkillResult(
-                success=False,
+            return SkillResult.fail(
                 error=str(e),
                 tts_response="Tôi không tìm thấy kỹ năng này.",
+                error_code=SKILL_ERR_NOT_FOUND,
             )
 
         # 1.5 Permission enforcement
@@ -119,17 +129,18 @@ class Hands:
         if blocked and not self._perm_mgr.check_permission(skill, blocked[0].name):
             names = ", ".join(p.name for p in blocked)
             logger.warning("Skill '%s' blocked — missing dangerous permissions: %s", skill.name, names)
-            return SkillResult(
-                success=False,
+            return SkillResult.fail(
                 error=f"Permission denied: {names}",
                 tts_response="Kỹ năng này cần quyền truy cập nguy hiểm mà chưa được cấp.",
+                error_code=SKILL_ERR_PERMISSION_DENIED,
+                error_severity="warning",
             )
 
         # 2. Check can handle
         if not await skill.can_handle(intent):
-            return SkillResult(
-                success=False,
+            return SkillResult.fail(
                 error="Skill assigned could not handle the intent.",
+                error_code=SKILL_ERR_UNSUPPORTED_ACTION,
             )
 
         # 3. Execute with tier priority (A → D)
@@ -147,16 +158,16 @@ class Hands:
                 continue
 
         if last_error:
-            return SkillResult(
-                success=False,
+            return SkillResult.fail(
                 error=last_error,
                 tts_response="Đã có lỗi xảy ra trong quá trình thao tác.",
+                error_code="tier_exhausted",
             )
 
-        return SkillResult(
-            success=False,
+        return SkillResult.fail(
             error="No execution tier succeeded",
             tts_response="Không thể thực hiện lệnh này.",
+            error_code="tier_exhausted",
         )
 
     async def _require_confirmation(self, action: str, description: str) -> bool:
