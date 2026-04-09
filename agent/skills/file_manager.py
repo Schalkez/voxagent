@@ -81,9 +81,10 @@ class FileManagerSkill(BaseSkill):
         if action == "delete_file":
             return await self._delete_file(intent.params.get("path", ""))
 
-        return SkillResult(
-            success=False,
-            error=f"Hành động '{action}' không hỗ trợ bởi file_manager.",
+        return SkillResult.fail(
+            error=f"Unsupported action: {action}",
+            tts_response=f"Hành động '{action}' không hỗ trợ bởi file_manager.",
+            error_code="unsupported_action",
             tier_used=ExecutionTier.NATIVE_API,
         )
 
@@ -100,10 +101,10 @@ class FileManagerSkill(BaseSkill):
             target = Path(path_str).resolve()
 
             if not target.is_dir():
-                return SkillResult(
-                    success=False,
+                return SkillResult.fail(
                     error=f"Not a directory: {target}",
                     tts_response="Đường dẫn không phải là thư mục.",
+                    error_code="invalid_params",
                     tier_used=ExecutionTier.NATIVE_API,
                 )
 
@@ -118,24 +119,23 @@ class FileManagerSkill(BaseSkill):
             ]
 
             count = len(items)
-            return SkillResult(
-                success=True,
+            return SkillResult.ok(
                 tts_response=f"Thư mục có {count} mục.",
                 data={"path": str(target), "items": items},
                 tier_used=ExecutionTier.NATIVE_API,
             )
         except PermissionError:
-            return SkillResult(
-                success=False,
+            return SkillResult.fail(
                 error=f"Permission denied: {path_str}",
                 tts_response="Không có quyền truy cập thư mục này.",
+                error_code="permission_denied",
                 tier_used=ExecutionTier.NATIVE_API,
             )
         except OSError as e:
-            return SkillResult(
-                success=False,
+            return SkillResult.fail(
                 error=str(e),
                 tts_response="Không thể đọc thư mục.",
+                error_code="io_error",
                 tier_used=ExecutionTier.NATIVE_API,
             )
 
@@ -150,10 +150,10 @@ class FileManagerSkill(BaseSkill):
             SkillResult with matching file paths in data.
         """
         if not query:
-            return SkillResult(
-                success=False,
+            return SkillResult.fail(
                 error="No search query provided.",
                 tts_response="Anh muốn tìm file gì?",
+                error_code="invalid_params",
                 tier_used=ExecutionTier.NATIVE_API,
             )
 
@@ -166,24 +166,22 @@ class FileManagerSkill(BaseSkill):
             )
 
             if not matches:
-                return SkillResult(
-                    success=True,
+                return SkillResult.ok(
                     tts_response=f"Không tìm thấy file nào khớp với '{query}'.",
                     data={"matches": []},
                     tier_used=ExecutionTier.NATIVE_API,
                 )
 
-            return SkillResult(
-                success=True,
+            return SkillResult.ok(
                 tts_response=f"Tìm thấy {len(matches)} file.",
                 data={"matches": matches},
                 tier_used=ExecutionTier.NATIVE_API,
             )
         except (PermissionError, OSError) as e:
-            return SkillResult(
-                success=False,
+            return SkillResult.fail(
                 error=str(e),
                 tts_response="Không thể tìm kiếm file.",
+                error_code="io_error",
                 tier_used=ExecutionTier.NATIVE_API,
             )
 
@@ -198,10 +196,10 @@ class FileManagerSkill(BaseSkill):
             SkillResult indicating success or failure.
         """
         if not source or not destination:
-            return SkillResult(
-                success=False,
+            return SkillResult.fail(
                 error="Source and destination paths required.",
                 tts_response="Cần cung cấp đường dẫn nguồn và đích.",
+                error_code="invalid_params",
                 tier_used=ExecutionTier.NATIVE_API,
             )
 
@@ -211,17 +209,16 @@ class FileManagerSkill(BaseSkill):
             await asyncio.to_thread(shutil.move, str(src), str(dst))
 
             logger.info("Moved: %s → %s", src, dst)
-            return SkillResult(
-                success=True,
+            return SkillResult.ok(
                 tts_response="Đã di chuyển file thành công.",
                 data={"source": str(src), "destination": str(dst)},
                 tier_used=ExecutionTier.NATIVE_API,
             )
         except (FileNotFoundError, PermissionError, OSError) as e:
-            return SkillResult(
-                success=False,
+            return SkillResult.fail(
                 error=str(e),
                 tts_response="Không thể di chuyển file.",
+                error_code="io_error",
                 tier_used=ExecutionTier.NATIVE_API,
             )
 
@@ -236,10 +233,10 @@ class FileManagerSkill(BaseSkill):
             SkillResult indicating success or failure.
         """
         if not source or not destination:
-            return SkillResult(
-                success=False,
+            return SkillResult.fail(
                 error="Source and destination paths required.",
                 tts_response="Cần cung cấp đường dẫn nguồn và đích.",
+                error_code="invalid_params",
                 tier_used=ExecutionTier.NATIVE_API,
             )
 
@@ -253,17 +250,16 @@ class FileManagerSkill(BaseSkill):
                 await asyncio.to_thread(shutil.copy2, str(src), str(dst))
 
             logger.info("Copied: %s → %s", src, dst)
-            return SkillResult(
-                success=True,
+            return SkillResult.ok(
                 tts_response="Đã sao chép file thành công.",
                 data={"source": str(src), "destination": str(dst)},
                 tier_used=ExecutionTier.NATIVE_API,
             )
         except (FileNotFoundError, PermissionError, OSError) as e:
-            return SkillResult(
-                success=False,
+            return SkillResult.fail(
                 error=str(e),
                 tts_response="Không thể sao chép file.",
+                error_code="io_error",
                 tier_used=ExecutionTier.NATIVE_API,
             )
 
@@ -280,10 +276,10 @@ class FileManagerSkill(BaseSkill):
             SkillResult indicating success or failure.
         """
         if not path_str:
-            return SkillResult(
-                success=False,
+            return SkillResult.fail(
                 error="No path provided.",
                 tts_response="Anh muốn xóa file nào?",
+                error_code="invalid_params",
                 tier_used=ExecutionTier.NATIVE_API,
             )
 
@@ -291,10 +287,10 @@ class FileManagerSkill(BaseSkill):
             target = Path(path_str).resolve()
 
             if not target.exists():
-                return SkillResult(
-                    success=False,
+                return SkillResult.fail(
                     error=f"Path not found: {target}",
                     tts_response="Không tìm thấy file này.",
+                    error_code="not_found",
                     tier_used=ExecutionTier.NATIVE_API,
                 )
 
@@ -304,16 +300,15 @@ class FileManagerSkill(BaseSkill):
                 await asyncio.to_thread(target.unlink)
 
             logger.info("Deleted: %s", target)
-            return SkillResult(
-                success=True,
+            return SkillResult.ok(
                 tts_response=f"Đã xóa {target.name} rồi.",
                 data={"deleted": str(target)},
                 tier_used=ExecutionTier.NATIVE_API,
             )
         except (PermissionError, OSError) as e:
-            return SkillResult(
-                success=False,
+            return SkillResult.fail(
                 error=str(e),
                 tts_response="Không thể xóa file này.",
+                error_code="io_error",
                 tier_used=ExecutionTier.NATIVE_API,
             )
