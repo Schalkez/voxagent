@@ -13,6 +13,7 @@ import pytest
 
 from core.config import VoxAgentConfig
 from core.ears import Ears, EarsState, EmptyTranscribeResult
+from core.errors import PipelineError
 
 # ── Helpers ──────────────────────────────────────────
 
@@ -164,7 +165,7 @@ class TestEarsLifecycle:
             mock_recorder_cls.return_value.is_active = False
             ears = Ears(stt_provider=_make_mock_stt(), config=_make_config())
 
-            with pytest.raises(RuntimeError, match="Ears not started"):
+            with pytest.raises(PipelineError, match="Ears not started"):
                 ears._ensure_started()
 
     @pytest.mark.asyncio
