@@ -6,7 +6,6 @@ API keys, and system configuration.
 
 from __future__ import annotations
 
-import logging
 import os
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -18,9 +17,10 @@ from fastapi.responses import JSONResponse
 
 from api.exceptions import VoxAPIException
 from api.routers import providers, routing, settings, skills
+from core.logging import get_logger
 from providers.registry import ProviderRegistry
 
-logger = logging.getLogger("voxagent.api")
+logger = get_logger(module="api")
 
 # ── Lifespan & Dependencies ──
 
@@ -77,7 +77,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # Attach to app state
     app.state.provider_registry = registry
-    logger.info("Provider registry initialized with models.")
+    logger.info("provider registry initialized")
 
     # Register STT providers
     try:
@@ -101,12 +101,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     except ImportError:
         pass
 
-    logger.info("STT/TTS providers registered.")
+    logger.info("STT/TTS providers registered")
 
     yield  # Yield control to FastAPI to serve requests
 
     # 3. Teardown
-    logger.info("Shutting down API server and releasing resources.")
+    logger.info("shutting down API server")
     del app.state.provider_registry
 
 

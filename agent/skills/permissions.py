@@ -6,13 +6,13 @@ and whether an action is classified as dangerous.
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
 from enum import Enum
 
+from core.logging import get_logger
 from skills.base import BaseSkill
 
-logger = logging.getLogger("voxagent.skills.permissions")
+logger = get_logger(module="skills.permissions")
 
 
 class PermissionLevel(Enum):

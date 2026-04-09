@@ -4,14 +4,14 @@ Allows dynamic registration and instantiation of skills.
 """
 
 import importlib
-import logging
 import pkgutil
 from typing import ClassVar
 
 from core.errors import SkillError
+from core.logging import get_logger
 from skills.base import BaseSkill
 
-logger = logging.getLogger("voxagent.skills")
+logger = get_logger(module="skills.registry")
 
 
 class SkillRegistry:
@@ -39,7 +39,7 @@ class SkillRegistry:
         # Instantiate and store the skill
         instance = skill_class()
         cls._skills[skill_class.name] = instance
-        logger.debug("Registered skill: %s", skill_class.name)
+        logger.debug("registered skill", skill=skill_class.name)
         return skill_class
 
     def get_skill(self, name: str) -> BaseSkill:
@@ -59,11 +59,11 @@ class SkillRegistry:
 
     def discover_skills(self, package_name: str = "skills") -> None:
         """Dynamically load and register all skills from the skills package."""
-        logger.info("Discovering skills in package '%s'...", package_name)
+        logger.info("discovering skills", package=package_name)
         try:
             package = importlib.import_module(package_name)
         except ImportError as e:
-            logger.warning("Could not import skills package '%s': %s", package_name, e)
+            logger.warning("could not import skills package", package=package_name, error=str(e))
             return
 
         added_count = 0
@@ -78,9 +78,9 @@ class SkillRegistry:
                     importlib.import_module(module_name)
                     added_count += 1
                 except (ImportError, AttributeError, TypeError) as e:
-                    logger.error("Failed to load skill module '%s': %s", module_name, e)
+                    logger.error("failed to load skill module", module=module_name, error=str(e))
 
-        logger.info("Loaded %d skill modules from '%s'.", added_count, package_name)
+        logger.info("loaded skill modules", count=added_count, package=package_name)
 
 
 # Create a global instance for easy access

@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from core.errors import ErrorSeverity, ProviderError
+from core.logging import get_logger
 
 if TYPE_CHECKING:
     from providers.base import (
@@ -31,6 +32,9 @@ class ProviderNotFoundError(ProviderError, KeyError):
             user_message="Khong tim thay nha cung cap.",
             retryable=False,
         )
+
+
+logger = get_logger(module="providers.registry")
 
 
 class ProviderRegistry:
@@ -168,6 +172,7 @@ class ProviderRegistry:
         """
         for name in self._fallback_chain:
             try:
+                logger.info("trying fallback provider", provider=name)
                 provider = self.get_llm(name)
                 if await provider.health_check():
                     return provider
