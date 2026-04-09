@@ -91,19 +91,20 @@ class AppLauncherSkill(BaseSkill):
         if action == "list_running":
             return await self._list_running()
 
-        return SkillResult(
-            success=False,
-            error=f"Hành động '{action}' không hỗ trợ.",
+        return SkillResult.fail(
+            error=f"Unsupported action: {action}",
+            tts_response=f"Hành động '{action}' không hỗ trợ.",
+            error_code="unsupported_action",
             tier_used=ExecutionTier.NATIVE_API,
         )
 
     async def _open_app(self, app_name: str) -> SkillResult:
         """Open an application by name."""
         if not app_name:
-            return SkillResult(
-                success=False,
+            return SkillResult.fail(
                 error="No app name provided.",
                 tts_response="Anh muốn mở ứng dụng nào?",
+                error_code="invalid_params",
                 tier_used=ExecutionTier.NATIVE_API,
             )
 
@@ -123,28 +124,27 @@ class AppLauncherSkill(BaseSkill):
                 )
 
             logger.info("Opened app: %s (executable: %s)", app_name, executable)
-            return SkillResult(
-                success=True,
+            return SkillResult.ok(
                 tts_response=f"Đã mở {app_name} rồi nha.",
                 data={"app": app_name, "executable": executable},
                 tier_used=ExecutionTier.NATIVE_API,
             )
         except (OSError, FileNotFoundError, subprocess.SubprocessError) as e:
             logger.warning("Failed to open %s: %s", app_name, e)
-            return SkillResult(
-                success=False,
+            return SkillResult.fail(
                 error=str(e),
                 tts_response=f"Không mở được {app_name}.",
+                error_code="execution_error",
                 tier_used=ExecutionTier.NATIVE_API,
             )
 
     async def _close_app(self, app_name: str) -> SkillResult:
         """Close an application by name."""
         if not app_name:
-            return SkillResult(
-                success=False,
+            return SkillResult.fail(
                 error="No app name provided.",
                 tts_response="Anh muốn tắt ứng dụng nào?",
+                error_code="invalid_params",
                 tier_used=ExecutionTier.NATIVE_API,
             )
 
@@ -169,23 +169,22 @@ class AppLauncherSkill(BaseSkill):
                 )
 
             logger.info("Closed app: %s", app_name)
-            return SkillResult(
-                success=True,
+            return SkillResult.ok(
                 tts_response=f"Đã tắt {app_name} rồi.",
                 tier_used=ExecutionTier.SHELL,
             )
         except subprocess.TimeoutExpired:
-            return SkillResult(
-                success=False,
+            return SkillResult.fail(
                 error="Timeout closing app",
                 tts_response=f"Không tắt được {app_name}, quá thời gian chờ.",
+                error_code="timeout",
                 tier_used=ExecutionTier.SHELL,
             )
         except (subprocess.SubprocessError, OSError) as e:
-            return SkillResult(
-                success=False,
+            return SkillResult.fail(
                 error=str(e),
                 tts_response=f"Không tắt được {app_name}.",
+                error_code="execution_error",
                 tier_used=ExecutionTier.SHELL,
             )
 
@@ -209,15 +208,14 @@ class AppLauncherSkill(BaseSkill):
             top_5 = processes[:5]
             app_list = ", ".join(p["name"] for p in top_5)
 
-            return SkillResult(
-                success=True,
+            return SkillResult.ok(
                 tts_response=f"Các ứng dụng đang chạy nhiều nhất: {app_list}.",
                 data={"processes": processes[:20]},
                 tier_used=ExecutionTier.NATIVE_API,
             )
         except ImportError:
-            return SkillResult(
-                success=False,
+            return SkillResult.fail(
                 error="psutil not installed",
+                error_code="provider_unavailable",
                 tier_used=ExecutionTier.NATIVE_API,
             )

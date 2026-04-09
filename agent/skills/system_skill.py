@@ -38,8 +38,7 @@ class SystemVolumeSkill(BaseSkill):
             except (NotImplementedError, OSError):
                 logger.warning("Volume control not available on this platform")
 
-            return SkillResult(
-                success=True,
+            return SkillResult.ok(
                 tts_response=f"Đã chỉnh âm lượng ở mức {level} phần trăm.",
                 data={"volume": int(level)},
                 tier_used=ExecutionTier.NATIVE_API,
@@ -47,14 +46,14 @@ class SystemVolumeSkill(BaseSkill):
 
         if intent.action in ("mute", "unmute"):
             action_text = "Tắt" if intent.action == "mute" else "Bật"
-            return SkillResult(
-                success=True,
+            return SkillResult.ok(
                 tts_response=f"Đã {action_text} tiếng máy tính.",
                 tier_used=ExecutionTier.NATIVE_API,
             )
 
-        return SkillResult(
-            success=False,
-            error=f"Hành động '{intent.action}' không hỗ trợ bởi {self.name} skill.",
+        return SkillResult.fail(
+            error=f"Unsupported action: {intent.action}",
+            tts_response=f"Hành động '{intent.action}' không hỗ trợ bởi {self.name} skill.",
+            error_code="unsupported_action",
             tier_used=ExecutionTier.NATIVE_API,
         )

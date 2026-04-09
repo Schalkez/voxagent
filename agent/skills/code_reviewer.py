@@ -45,16 +45,16 @@ class CodeReviewerSkill(BaseSkill):
         if action in ("review_visible", "review"):
             return await self._review_visible()
 
-        return SkillResult(
-            success=False,
-            error=f"Hành động '{action}' không hỗ trợ bởi {self.name}.",
+        return SkillResult.fail(
+            error=f"Unsupported action: {action}",
+            tts_response=f"Hành động '{action}' không hỗ trợ bởi {self.name}.",
+            error_code="unsupported_action",
             tier_used=ExecutionTier.APP_API,
         )
 
     async def _review_visible(self) -> SkillResult:
         """Review code currently visible on screen."""
-        return SkillResult(
-            success=True,
+        return SkillResult.ok(
             tts_response="Tính năng review code đang được phát triển. Hiện tại chưa hỗ trợ.",
             tier_used=ExecutionTier.APP_API,
         )

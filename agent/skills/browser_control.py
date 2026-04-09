@@ -60,9 +60,10 @@ class BrowserControlSkill(BaseSkill):
         if action == "search_web":
             return await self._search_web(intent.params.get("query", ""))
 
-        return SkillResult(
-            success=False,
-            error=f"Hành động '{action}' không hỗ trợ bởi browser_control.",
+        return SkillResult.fail(
+            error=f"Unsupported action: {action}",
+            tts_response=f"Hành động '{action}' không hỗ trợ bởi browser_control.",
+            error_code="unsupported_action",
             tier_used=ExecutionTier.NATIVE_API,
         )
 
@@ -76,10 +77,10 @@ class BrowserControlSkill(BaseSkill):
             SkillResult indicating success or failure.
         """
         if not url:
-            return SkillResult(
-                success=False,
+            return SkillResult.fail(
                 error="No URL provided.",
                 tts_response="Anh muốn mở trang web nào?",
+                error_code="invalid_params",
                 tier_used=ExecutionTier.NATIVE_API,
             )
 
@@ -92,25 +93,24 @@ class BrowserControlSkill(BaseSkill):
 
             if opened:
                 logger.info("Opened URL: %s", url)
-                return SkillResult(
-                    success=True,
+                return SkillResult.ok(
                     tts_response="Đã mở trang web rồi nha.",
                     data={"url": url},
                     tier_used=ExecutionTier.NATIVE_API,
                 )
 
-            return SkillResult(
-                success=False,
+            return SkillResult.fail(
                 error="Browser could not open the URL.",
                 tts_response="Không thể mở trình duyệt.",
+                error_code="execution_error",
                 tier_used=ExecutionTier.NATIVE_API,
             )
         except (OSError, webbrowser.Error) as e:
             logger.warning("Failed to open URL '%s': %s", url, e)
-            return SkillResult(
-                success=False,
+            return SkillResult.fail(
                 error=str(e),
                 tts_response="Không thể mở trang web.",
+                error_code="execution_error",
                 tier_used=ExecutionTier.NATIVE_API,
             )
 
@@ -124,10 +124,10 @@ class BrowserControlSkill(BaseSkill):
             SkillResult indicating success or failure.
         """
         if not query:
-            return SkillResult(
-                success=False,
+            return SkillResult.fail(
                 error="No search query provided.",
                 tts_response="Anh muốn tìm kiếm gì?",
+                error_code="invalid_params",
                 tier_used=ExecutionTier.NATIVE_API,
             )
 
@@ -138,24 +138,23 @@ class BrowserControlSkill(BaseSkill):
 
             if opened:
                 logger.info("Web search: %s", query)
-                return SkillResult(
-                    success=True,
+                return SkillResult.ok(
                     tts_response=f"Đã tìm kiếm '{query}' trên Google rồi nha.",
                     data={"query": query, "url": search_url},
                     tier_used=ExecutionTier.NATIVE_API,
                 )
 
-            return SkillResult(
-                success=False,
+            return SkillResult.fail(
                 error="Browser could not open the search URL.",
                 tts_response="Không thể mở trình duyệt để tìm kiếm.",
+                error_code="execution_error",
                 tier_used=ExecutionTier.NATIVE_API,
             )
         except (OSError, webbrowser.Error) as e:
             logger.warning("Failed to search '%s': %s", query, e)
-            return SkillResult(
-                success=False,
+            return SkillResult.fail(
                 error=str(e),
                 tts_response="Không thể tìm kiếm trên web.",
+                error_code="execution_error",
                 tier_used=ExecutionTier.NATIVE_API,
             )

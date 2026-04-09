@@ -51,9 +51,10 @@ class ScreenReaderSkill(BaseSkill):
         if action == "describe_screen":
             return await self._describe_screen()
 
-        return SkillResult(
-            success=False,
-            error=f"Hành động '{action}' không hỗ trợ bởi {self.name}.",
+        return SkillResult.fail(
+            error=f"Unsupported action: {action}",
+            tts_response=f"Hành động '{action}' không hỗ trợ bởi {self.name}.",
+            error_code="unsupported_action",
             tier_used=ExecutionTier.NATIVE_API,
         )
 
@@ -67,29 +68,26 @@ class ScreenReaderSkill(BaseSkill):
 
             if text:
                 preview = text[:200]
-                return SkillResult(
-                    success=True,
+                return SkillResult.ok(
                     tts_response=f"Tôi đọc được: {preview}",
                     data={"text": text},
                     tier_used=ExecutionTier.NATIVE_API,
                 )
-            return SkillResult(
-                success=True,
+            return SkillResult.ok(
                 tts_response="Không đọc được chữ nào trên màn hình.",
                 tier_used=ExecutionTier.NATIVE_API,
             )
         except (ImportError, RuntimeError, OSError) as e:
-            return SkillResult(
-                success=False,
+            return SkillResult.fail(
                 error=str(e),
                 tts_response="Không thể đọc màn hình.",
+                error_code="execution_error",
                 tier_used=ExecutionTier.NATIVE_API,
             )
 
     async def _describe_screen(self) -> SkillResult:
         """Describe screen content using Vision LLM."""
-        return SkillResult(
-            success=True,
+        return SkillResult.ok(
             tts_response="Tính năng mô tả màn hình đang được phát triển.",
             tier_used=ExecutionTier.APP_API,
         )

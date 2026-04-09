@@ -65,9 +65,10 @@ class SystemControlSkill(BaseSkill):
         if action == "hibernate":
             return await self._hibernate()
 
-        return SkillResult(
-            success=False,
-            error=f"Hành động '{action}' không hỗ trợ bởi {self.name} skill.",
+        return SkillResult.fail(
+            error=f"Unsupported action: {action}",
+            tts_response=f"Hành động '{action}' không hỗ trợ bởi {self.name} skill.",
+            error_code="unsupported_action",
             tier_used=ExecutionTier.NATIVE_API,
         )
 
@@ -138,23 +139,22 @@ class SystemControlSkill(BaseSkill):
                 timeout=10,
             )
             logger.info("Executed system command: %s", " ".join(cmd))
-            return SkillResult(
-                success=True,
+            return SkillResult.ok(
                 tts_response=f"Đã {description} rồi nha.",
                 tier_used=ExecutionTier.NATIVE_API,
             )
         except subprocess.TimeoutExpired:
-            return SkillResult(
-                success=False,
+            return SkillResult.fail(
                 error="Command timed out",
                 tts_response="Lệnh hệ thống quá thời gian chờ.",
+                error_code="timeout",
                 tier_used=ExecutionTier.NATIVE_API,
             )
         except (subprocess.CalledProcessError, OSError, FileNotFoundError) as e:
             logger.exception("System command failed: %s", cmd)
-            return SkillResult(
-                success=False,
+            return SkillResult.fail(
                 error=str(e),
                 tts_response=f"Không {description} được.",
+                error_code="execution_error",
                 tier_used=ExecutionTier.NATIVE_API,
             )
