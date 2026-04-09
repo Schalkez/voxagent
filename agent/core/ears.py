@@ -9,7 +9,6 @@ STT to an injected provider. It contains no audio logic itself.
 
 from __future__ import annotations
 
-import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum, auto
@@ -22,12 +21,13 @@ from core.audio.recorder import CHUNK_DURATION_MS, AudioRecorder
 from core.audio.vad import VoiceActivityDetector
 from core.audio.wake_word import WakeWordDetector
 from core.errors import AudioError, PipelineError
+from core.logging import get_logger
 
 if TYPE_CHECKING:
     from core.config import VoxAgentConfig
     from providers.base import STTProvider, TranscribeResult
 
-logger = logging.getLogger("voxagent.ears")
+logger = get_logger(module="ears")
 
 # ── Named Constants ───────────────────────────────
 
@@ -188,7 +188,7 @@ class Ears:
 
         # Step 2: Record until silence
         self._emit(EarsState.RECORDING_SPEECH, "Recording...")
-        logger.info("Wake word detected — recording speech")
+        logger.info("wake word detected — recording speech")
         frames = await self._record_until_silence()
 
         if not frames:
@@ -258,7 +258,7 @@ class Ears:
                 silence_chunks += 1
                 if silence_chunks >= max_silence_chunks and len(frames) > max_silence_chunks:
                     frames = frames[: len(frames) - silence_chunks + 2]
-                    logger.debug("End of speech after %d frames", len(frames))
+                    logger.debug("end of speech", frames=len(frames))
                     break
 
         return frames
@@ -282,7 +282,7 @@ class Ears:
         duration_ms = int(len(frames) * CHUNK_DURATION_MS)
 
         self._emit(EarsState.TRANSCRIBING, "Transcribing...")
-        logger.info("Transcribing %d ms of audio...", duration_ms)
+        logger.info("transcribing audio", duration_ms=duration_ms)
 
         result = await self._stt_provider.transcribe(
             wav_bytes,
@@ -293,5 +293,5 @@ class Ears:
             EarsState.LISTENING_FOR_WAKE_WORD,
             f"Transcribed: '{result.text}'",
         )
-        logger.info("Transcription: '%s' (confidence=%.2f)", result.text, result.confidence)
+        logger.info("transcription complete", text=result.text, confidence=result.confidence, duration_ms=duration_ms)
         return result

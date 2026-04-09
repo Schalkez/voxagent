@@ -7,18 +7,21 @@ and manages module initialization and graceful shutdown.
 from __future__ import annotations
 
 import asyncio
-import logging
 import signal
 import sys
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
+
+import structlog
 
 from core.autopilot import Autopilot
 from core.brain import Brain
 from core.config import VoxAgentConfig, load_config
 from core.errors import VoxError
 from core.hands import Hands
+from core.logging import configure_logging, get_logger
 from core.memory import Memory
 from core.mouth import Mouth
 from providers.registry import ProviderNotFoundError, ProviderRegistry
@@ -28,7 +31,7 @@ if TYPE_CHECKING:
     from core.ears import Ears
     from providers.base import STTProvider, TTSProvider
 
-logger = logging.getLogger("voxagent.app")
+logger = get_logger(module="app")
 
 _DB_PATH = str(Path.home() / ".voxagent" / "memory.db")
 
@@ -70,12 +73,12 @@ class VoxAgentApp:
             signal.signal(signal.SIGINT, lambda *_: asyncio.create_task(self.stop()))
             signal.signal(signal.SIGTERM, lambda *_: asyncio.create_task(self.stop()))
 
-        logger.info("Starting VoxAgent (debug=%s)...", self.debug)
+        logger.info("starting voxagent", debug=self.debug)
 
         await self._init_modules()
 
         if self.debug:
-            logger.info("[VoxAgent] Pipeline ready: EARS → BRAIN → HANDS → MOUTH (with Autopilot)")
+            logger.info("pipeline ready: EARS -> BRAIN -> HANDS -> MOUTH (with Autopilot)")
 
         # Start autopilot background task
         task = asyncio.create_task(self._autopilot.run())
@@ -121,7 +124,7 @@ class VoxAgentApp:
         # 6. Wire Hands with mouth/ears for voice confirmation
         self._hands = Hands(mouth=self._mouth, ears=self._ears)
 
-        logger.info("All modules initialized")
+        logger.info("all modules initialized")
 
     def _register_providers(self) -> None:
         """Register all available providers in the registry."""
@@ -198,7 +201,7 @@ class VoxAgentApp:
         try:
             return self._registry.get_stt(provider_name)
         except ProviderNotFoundError:
-            logger.warning("STT provider '%s' not available", provider_name)
+            logger.warning("STT provider not available", provider=provider_name)
             return None
 
     def _get_tts_provider(self) -> TTSProvider | None:
@@ -209,7 +212,7 @@ class VoxAgentApp:
         try:
             return self._registry.get_tts(provider_name)
         except ProviderNotFoundError:
-            logger.warning("TTS provider '%s' not available", provider_name)
+            logger.warning("TTS provider not available", provider=provider_name)
             return None
 
     async def stop(self) -> None:
@@ -222,7 +225,7 @@ class VoxAgentApp:
             return
         self._running = False
 
-        logger.info("Shutting down VoxAgent...")
+        logger.info("shutting down voxagent")
 
         if self._ears is not None:
             await self._ears.stop()
@@ -232,7 +235,7 @@ class VoxAgentApp:
             t.cancel()
 
         await self._memory.close()
-        logger.info("VoxAgent stopped")
+        logger.info("voxagent stopped")
 
     async def _run_loop(self) -> None:
         """Main event loop: EARS → BRAIN → HANDS → MOUTH.
@@ -241,24 +244,35 @@ class VoxAgentApp:
         through the pipeline until stopped.
         """
         if self._ears is None or self._brain is None:
-            logger.warning("Ears or Brain not initialized — running in API-only mode")
+            logger.warning("ears or brain not initialized — running in API-only mode")
             while self._running:
                 await asyncio.sleep(1)
             return
 
-        logger.info("Listening for commands...")
+        logger.info("listening for commands")
 
         while self._running:
             try:
+                structlog.contextvars.clear_contextvars()
+
                 transcription = await self._ears.wait_for_command()
 
                 if not transcription.text:
                     continue
 
-                logger.info("Heard: '%s'", transcription.text)
+                structlog.contextvars.bind_contextvars(command=transcription.text[:100])
+                logger.info("heard command", text=transcription.text)
 
+                t0 = time.monotonic()
                 intent = await self._brain.process(transcription.text)
-                logger.info("Intent: skill=%s action=%s", intent.skill_name, intent.action)
+                brain_latency_ms = int((time.monotonic() - t0) * 1000)
+                logger.info(
+                    "intent resolved",
+                    skill=intent.skill_name,
+                    action=intent.action,
+                    tier=intent.tier_used.value,
+                    latency_ms=brain_latency_ms,
+                )
 
                 if intent.skill_name == "unknown":
                     await self._mouth.speak("Xin lỗi, tôi không hiểu lệnh đó.")
@@ -270,7 +284,16 @@ class VoxAgentApp:
                     params=intent.params,
                     raw_text=transcription.text,
                 )
+
+                t0 = time.monotonic()
                 result = await self._hands.execute(skill_intent)
+                hands_latency_ms = int((time.monotonic() - t0) * 1000)
+                logger.info(
+                    "skill executed",
+                    skill=intent.skill_name,
+                    success=result.success,
+                    latency_ms=hands_latency_ms,
+                )
 
                 if result.tts_response:
                     await self._mouth.speak(result.tts_response)
@@ -280,12 +303,18 @@ class VoxAgentApp:
             except asyncio.CancelledError:
                 break
             except VoxError as ve:
-                logger.error("Pipeline error (stage=%s): %s", ve.context.get("stage", "unknown"), ve)
+                logger.error(
+                    "pipeline error",
+                    error=str(ve),
+                    severity=ve.severity.value,
+                    retryable=ve.retryable,
+                    **ve.context,
+                )
                 if ve.user_message:
                     await self._mouth.speak(ve.user_message)
                 await asyncio.sleep(0.5)
             except (RuntimeError, OSError, KeyError):
-                logger.exception("Unexpected error in main loop")
+                logger.exception("unexpected error in main loop")
                 await asyncio.sleep(0.5)
 
 
@@ -324,10 +353,7 @@ def main() -> None:
         args.debug = "--debug" in sys.argv
         args.profile = None
 
-    logging.basicConfig(
-        level=logging.DEBUG if getattr(args, "debug", False) else logging.INFO,
-        format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
-    )
+    configure_logging(debug=getattr(args, "debug", False))
 
     if args.command == "setup":
         _run_setup()
@@ -339,7 +365,7 @@ def main() -> None:
 
         config = load_profile(args.profile)
         save_config(config)
-        logger.info("Loaded profile: %s", args.profile)
+        logger.info("loaded profile", profile=args.profile)
 
     # Auto-generate config on first run
     _ensure_config_exists()
@@ -361,7 +387,7 @@ def _ensure_config_exists() -> None:
     config_dir.mkdir(parents=True, exist_ok=True)
     default_config = load_config()
     save_config(default_config)
-    logger.info("Created default config at %s", config_file)
+    logger.info("created default config", path=str(config_file))
 
 
 def _run_setup() -> None:

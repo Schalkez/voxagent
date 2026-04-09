@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import asyncio
 import io
-import logging
 import wave
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
@@ -16,11 +15,12 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from core.errors import AudioError
+from core.logging import get_logger
 
 if TYPE_CHECKING:
     from providers.base import TTSProvider
 
-logger = logging.getLogger("voxagent.mouth")
+logger = get_logger(module="mouth")
 
 
 @dataclass(frozen=True)
@@ -77,7 +77,7 @@ class Mouth:
             return
 
         if self._tts is None:
-            logger.warning("No TTS provider configured — skipping speech: %s", text[:50])
+            logger.warning("no TTS provider configured — skipping speech", text=text[:50])
             return
 
         cfg = config or _DEFAULT_CONFIG
@@ -85,9 +85,9 @@ class Mouth:
         try:
             wav_data = await self._tts.synthesize(text, voice=cfg.voice, speed=cfg.speed)
             await _play_wav(wav_data, volume=cfg.volume)
-            logger.debug("Spoke: '%s' (voice=%s)", text[:50], cfg.voice)
+            logger.debug("spoke", text=text[:50], voice=cfg.voice)
         except (AudioError, RuntimeError, OSError):
-            logger.exception("Failed to speak: '%s'", text[:50])
+            logger.exception("failed to speak", text=text[:50])
 
     async def play_earcon(self, sound: str) -> None:
         """Play a short notification sound.
@@ -99,7 +99,7 @@ class Mouth:
             sound: Sound identifier (e.g., 'beep', 'ding', 'error').
         """
         # TODO(Phase 2): Implement earcon playback with bundled WAV files
-        logger.debug("Earcon requested: %s (not yet implemented)", sound)
+        logger.debug("earcon requested (not yet implemented)", sound=sound)
 
     def format_response(self, template_name: str, **kwargs: str) -> str:
         """Format a response using Vietnamese templates.

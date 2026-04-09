@@ -9,13 +9,13 @@ from __future__ import annotations
 
 import asyncio
 import io
-import logging
 import time
 from dataclasses import dataclass, field
 
 from core.errors import ProviderError
+from core.logging import get_logger
 
-logger = logging.getLogger("voxagent.eyes")
+logger = get_logger(module="eyes")
 
 # ── Constants ──
 
@@ -102,7 +102,7 @@ class Eyes:
                 bounds=win.bounds,
             )
         except (NotImplementedError, OSError, RuntimeError) as e:
-            logger.warning("Failed to get active window: %s", e)
+            logger.warning("failed to get active window", error=str(e))
             return WindowInfo(title="", process_name="", pid=0, bounds=(0, 0, 0, 0))
 
     async def find_element(self, role: str, name: str) -> UIElement | None:
@@ -131,7 +131,7 @@ class Eyes:
                 bounds=elem.bounds,
             )
         except (NotImplementedError, OSError, RuntimeError) as e:
-            logger.warning("Failed to find element: %s", e)
+            logger.warning("failed to find element", error=str(e))
             return None
 
     async def capture_screen(
@@ -176,7 +176,7 @@ class Eyes:
             screenshot.save(buffer, format="PNG")
             return buffer.getvalue()
         except (OSError, ValueError) as e:
-            logger.warning("Screen capture failed: %s", e)
+            logger.warning("screen capture failed", error=str(e))
             return b""
 
     async def read_screen_text(
@@ -248,7 +248,7 @@ class Eyes:
             provider = registry.get_vision(vision_providers[0])
             return await provider.analyze_image(image, prompt)
         except (ProviderError, KeyError, RuntimeError, ConnectionError) as e:
-            logger.warning("Vision analysis failed: %s", e)
+            logger.warning("vision analysis failed", error=str(e))
             return f"Vision analysis failed: {e}"
 
     def _get_cached_ocr(self, region: tuple[int, int, int, int] | None) -> str | None:

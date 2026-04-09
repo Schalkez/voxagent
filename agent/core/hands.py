@@ -9,11 +9,11 @@ Execution Strategy (mandatory priority order):
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from core.errors import SkillError, VoxError
+from core.logging import get_logger
 from skills.base import (
     SKILL_ERR_CANCELLED,
     SKILL_ERR_NOT_FOUND,
@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     from core.ears import Ears
     from core.mouth import Mouth
 
-logger = logging.getLogger("voxagent.hands")
+logger = get_logger(module="hands")
 
 
 @dataclass(frozen=True)
@@ -128,7 +128,7 @@ class Hands:
         blocked = [p for p in perms if p.level == PermissionLevel.DANGEROUS]
         if blocked and not self._perm_mgr.check_permission(skill, blocked[0].name):
             names = ", ".join(p.name for p in blocked)
-            logger.warning("Skill '%s' blocked — missing dangerous permissions: %s", skill.name, names)
+            logger.warning("skill blocked — missing dangerous permissions", skill=skill.name, permissions=names)
             return SkillResult.fail(
                 error=f"Permission denied: {names}",
                 tts_response="Kỹ năng này cần quyền truy cập nguy hiểm mà chưa được cấp.",
@@ -147,7 +147,7 @@ class Hands:
         last_error: str | None = None
         for tier in skill.execution_tiers:
             try:
-                logger.debug("Trying tier %s for skill %s", tier.value, skill.name)
+                logger.debug("trying execution tier", tier=tier.value, skill=skill.name)
                 result = await skill.execute(intent)
                 if result.success:
                     return result
@@ -185,8 +185,8 @@ class Hands:
         """
         if self._mouth is None or self._ears is None:
             logger.warning(
-                "Cannot confirm dangerous action '%s' — no voice I/O configured",
-                action,
+                "cannot confirm dangerous action — no voice I/O configured",
+                action=action,
             )
             return False
 
@@ -199,14 +199,14 @@ class Hands:
 
             for word in answer.split():
                 if word in _CONFIRM_YES_WORDS:
-                    logger.info("User confirmed dangerous action: %s", action)
+                    logger.info("user confirmed dangerous action", action=action)
                     return True
                 if word in _CONFIRM_NO_WORDS:
-                    logger.info("User denied dangerous action: %s", action)
+                    logger.info("user denied dangerous action", action=action)
                     return False
 
-            logger.info("Unclear confirmation response '%s' — defaulting to deny", answer)
+            logger.info("unclear confirmation response — defaulting to deny", answer=answer)
             return False
         except (VoxError, TimeoutError, RuntimeError, OSError):
-            logger.exception("Error during confirmation — defaulting to deny")
+            logger.exception("error during confirmation — defaulting to deny")
             return False

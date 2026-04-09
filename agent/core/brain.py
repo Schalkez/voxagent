@@ -10,13 +10,13 @@ Routes incoming text through a tiered system:
 from __future__ import annotations
 
 import json
-import logging
 from dataclasses import dataclass
 from enum import IntEnum
 from typing import TYPE_CHECKING
 
 from core.errors import PipelineError, ProviderError
 from core.eyes import Eyes
+from core.logging import get_logger
 from providers.base import Message
 from providers.registry import ProviderNotFoundError, ProviderRegistry
 from skills.base import BaseSkill
@@ -24,7 +24,7 @@ from skills.base import BaseSkill
 if TYPE_CHECKING:
     from core.config import VoxAgentConfig
 
-logger = logging.getLogger("voxagent.brain")
+logger = get_logger(module="brain")
 
 
 class Tier(IntEnum):
@@ -170,7 +170,7 @@ class Brain:
                 if screen_content:
                     sys_prompt += f"\n\nCURRENT SCREEN TEXT CONTEXT:\n{screen_content}"
             except (OSError, RuntimeError) as e:
-                logger.warning("Failed to inject screen context: %s", e)
+                logger.warning("failed to inject screen context", error=str(e))
 
         messages = [Message(role="system", content=sys_prompt), Message(role="user", content=text)]
 
@@ -208,7 +208,7 @@ class Brain:
             raise  # Let provider errors propagate for fallback handling
         except (KeyError, json.JSONDecodeError, TypeError, ValueError) as e:
             # On failure, return unknown intent instead of crashing the pipeline
-            logger.error("Failed to extract intent from LLM response: %s", e)
+            logger.error("failed to extract intent from LLM response", error=str(e), tier=target_tier.value)
 
         return Intent(
             skill_name="unknown",
