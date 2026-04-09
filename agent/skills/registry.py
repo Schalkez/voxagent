@@ -8,7 +8,7 @@ import logging
 import pkgutil
 from typing import ClassVar
 
-from api.exceptions import VoxAPIException
+from core.errors import SkillError
 from skills.base import BaseSkill
 
 logger = logging.getLogger("voxagent.skills")
@@ -46,10 +46,10 @@ class SkillRegistry:
         """Retrieve a registered skill by its name."""
         skill = self._skills.get(name)
         if not skill:
-            raise VoxAPIException(
-                message=f"Skill '{name}' not found in registry.",
-                status_code=404,
-                code="skill_not_found",
+            raise SkillError(
+                f"Skill '{name}' not found in registry.",
+                skill_name=name,
+                user_message="Toi khong tim thay ky nang nay.",
             )
         return skill
 
