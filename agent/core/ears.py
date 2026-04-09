@@ -21,6 +21,7 @@ from core.audio.converter import AudioConverter
 from core.audio.recorder import CHUNK_DURATION_MS, AudioRecorder
 from core.audio.vad import VoiceActivityDetector
 from core.audio.wake_word import WakeWordDetector
+from core.errors import AudioError, PipelineError
 
 if TYPE_CHECKING:
     from core.config import VoxAgentConfig
@@ -141,7 +142,13 @@ class Ears:
 
         self._wake_word_detector.load()
         self._vad.load()
-        await self._recorder.start()
+        try:
+            await self._recorder.start()
+        except (RuntimeError, OSError) as e:
+            raise AudioError(
+                f"Failed to start microphone: {e}",
+                user_message="Khong the khoi dong micro.",
+            ) from e
 
         self._emit(
             EarsState.LISTENING_FOR_WAKE_WORD,
@@ -216,7 +223,11 @@ class Ears:
     def _ensure_started(self) -> None:
         """Guard clause: raise if not started."""
         if not self._recorder.is_active:
-            raise RuntimeError("Ears not started. Call start_listening() first.")
+            raise PipelineError(
+                "Ears not started. Call start_listening() first.",
+                stage="ears",
+                user_message="He thong nghe chua san sang.",
+            )
 
     async def _wait_for_wake_word(self) -> None:
         """Feed audio chunks to wake word detector until triggered."""
