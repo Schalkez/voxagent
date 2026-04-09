@@ -15,6 +15,8 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from core.errors import AudioError
+
 if TYPE_CHECKING:
     from providers.base import TTSProvider
 
@@ -84,7 +86,7 @@ class Mouth:
             wav_data = await self._tts.synthesize(text, voice=cfg.voice, speed=cfg.speed)
             await _play_wav(wav_data, volume=cfg.volume)
             logger.debug("Spoke: '%s' (voice=%s)", text[:50], cfg.voice)
-        except (RuntimeError, OSError):
+        except (AudioError, RuntimeError, OSError):
             logger.exception("Failed to speak: '%s'", text[:50])
 
     async def play_earcon(self, sound: str) -> None:
@@ -149,5 +151,8 @@ async def _play_wav(wav_data: bytes, volume: float = 1.0) -> None:
 
     try:
         await asyncio.to_thread(_play_blocking)
-    except (OSError, ValueError, wave.Error):
-        logger.exception("Audio playback failed")
+    except (OSError, ValueError, wave.Error) as e:
+        raise AudioError(
+            f"Audio playback failed: {e}",
+            user_message="Khong the phat am thanh.",
+        ) from e
