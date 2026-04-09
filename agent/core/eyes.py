@@ -13,6 +13,8 @@ import logging
 import time
 from dataclasses import dataclass, field
 
+from core.errors import ProviderError
+
 logger = logging.getLogger("voxagent.eyes")
 
 # ── Constants ──
@@ -245,7 +247,7 @@ class Eyes:
 
             provider = registry.get_vision(vision_providers[0])
             return await provider.analyze_image(image, prompt)
-        except (KeyError, RuntimeError, ConnectionError) as e:
+        except (ProviderError, KeyError, RuntimeError, ConnectionError) as e:
             logger.warning("Vision analysis failed: %s", e)
             return f"Vision analysis failed: {e}"
 
