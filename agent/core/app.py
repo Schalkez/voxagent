@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING
 from core.autopilot import Autopilot
 from core.brain import Brain
 from core.config import VoxAgentConfig, load_config
+from core.errors import VoxError
 from core.hands import Hands
 from core.memory import Memory
 from core.mouth import Mouth
@@ -278,8 +279,13 @@ class VoxAgentApp:
 
             except asyncio.CancelledError:
                 break
+            except VoxError as ve:
+                logger.error("Pipeline error (stage=%s): %s", ve.context.get("stage", "unknown"), ve)
+                if ve.user_message:
+                    await self._mouth.speak(ve.user_message)
+                await asyncio.sleep(0.5)
             except (RuntimeError, OSError, KeyError):
-                logger.exception("Error in main loop")
+                logger.exception("Unexpected error in main loop")
                 await asyncio.sleep(0.5)
 
 
