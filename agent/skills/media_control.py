@@ -107,24 +107,24 @@ class MediaControlSkill(BaseSkill):
         }
 
         if action not in action_map:
-            return SkillResult(
-                success=False,
-                error=f"Hành động '{action}' không hỗ trợ bởi media_control.",
+            return SkillResult.fail(
+                error=f"Unsupported action: {action}",
+                tts_response=f"Hành động '{action}' không hỗ trợ bởi media_control.",
+                error_code="unsupported_action",
                 tier_used=ExecutionTier.NATIVE_API,
             )
 
         vk_code, description = action_map[action]
 
         if _send_media_key(vk_code):
-            return SkillResult(
-                success=True,
+            return SkillResult.ok(
                 tts_response=f"Đã {description} rồi nha.",
                 tier_used=ExecutionTier.NATIVE_API,
             )
 
-        return SkillResult(
-            success=False,
+        return SkillResult.fail(
             error="Media key simulation not available on this platform.",
             tts_response="Không thể điều khiển media trên nền tảng này.",
+            error_code="platform_unsupported",
             tier_used=ExecutionTier.NATIVE_API,
         )

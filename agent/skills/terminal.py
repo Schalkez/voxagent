@@ -102,9 +102,10 @@ class TerminalSkill(BaseSkill):
         if action == "list_processes":
             return await self._list_processes()
 
-        return SkillResult(
-            success=False,
-            error=f"Hành động '{action}' không hỗ trợ bởi terminal.",
+        return SkillResult.fail(
+            error=f"Unsupported action: {action}",
+            tts_response=f"Hành động '{action}' không hỗ trợ bởi terminal.",
+            error_code="unsupported_action",
             tier_used=ExecutionTier.SHELL,
         )
 
@@ -118,18 +119,19 @@ class TerminalSkill(BaseSkill):
             SkillResult with stdout/stderr in data.
         """
         if not command:
-            return SkillResult(
-                success=False,
+            return SkillResult.fail(
                 error="No command provided.",
                 tts_response="Anh muốn chạy lệnh gì?",
+                error_code="invalid_params",
                 tier_used=ExecutionTier.SHELL,
             )
 
         if not _is_command_safe(command):
-            return SkillResult(
-                success=False,
+            return SkillResult.fail(
                 error=f"Command blocked by safety filter: {command}",
                 tts_response="Lệnh này bị chặn vì lý do an toàn.",
+                error_code="command_blocked",
+                error_severity="warning",
                 tier_used=ExecutionTier.SHELL,
             )
 
@@ -154,35 +156,34 @@ class TerminalSkill(BaseSkill):
             if result.returncode == 0:
                 logger.info("Command succeeded: %s", command)
                 stdout = stdout[:200] if stdout else "(không có output)"
-                return SkillResult(
-                    success=True,
+                return SkillResult.ok(
                     tts_response="Đã chạy lệnh thành công.",
                     data={"stdout": stdout, "stderr": stderr, "returncode": str(result.returncode)},
                     tier_used=ExecutionTier.SHELL,
                 )
 
             logger.warning("Command failed (rc=%d): %s", result.returncode, command)
-            return SkillResult(
-                success=False,
+            return SkillResult.fail(
                 error=f"Exit code {result.returncode}: {stderr or stdout}",
                 tts_response="Lệnh chạy không thành công.",
+                error_code="command_failed",
                 data={"stdout": stdout, "stderr": stderr, "returncode": str(result.returncode)},
                 tier_used=ExecutionTier.SHELL,
             )
 
         except subprocess.TimeoutExpired:
-            return SkillResult(
-                success=False,
+            return SkillResult.fail(
                 error=f"Command timed out after {COMMAND_TIMEOUT_S}s",
                 tts_response="Lệnh đã quá thời gian chờ.",
+                error_code="timeout",
                 tier_used=ExecutionTier.SHELL,
             )
         except (OSError, subprocess.SubprocessError) as e:
             logger.warning("Failed to execute command '%s': %s", command, e)
-            return SkillResult(
-                success=False,
+            return SkillResult.fail(
                 error=str(e),
                 tts_response="Không thể chạy lệnh này.",
+                error_code="execution_error",
                 tier_used=ExecutionTier.SHELL,
             )
 
@@ -211,16 +212,15 @@ class TerminalSkill(BaseSkill):
                 )
 
             lines = result.stdout.strip().split("\n")[:20]
-            return SkillResult(
-                success=True,
+            return SkillResult.ok(
                 tts_response=f"Đang có {len(lines)} tiến trình hiển thị.",
                 data={"processes": lines},
                 tier_used=ExecutionTier.SHELL,
             )
         except (subprocess.TimeoutExpired, OSError, subprocess.SubprocessError) as e:
-            return SkillResult(
-                success=False,
+            return SkillResult.fail(
                 error=str(e),
                 tts_response="Không thể lấy danh sách tiến trình.",
+                error_code="execution_error",
                 tier_used=ExecutionTier.SHELL,
             )
