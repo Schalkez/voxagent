@@ -34,7 +34,7 @@ Requirements for production hardening milestone. Each maps to roadmap phases.
 ### Error Handling
 
 - [ ] **ERRH-01**: Custom VoxError hierarchy with severity (critical/warning/info), user_message, and retryable flag
-- [ ] **ERRH-02**: User hears spoken error messages instead of silent failures (e.g., "Không kết nối được OpenAI, đang chuyển sang Groq")
+- [ ] **ERRH-02**: User hears spoken error messages instead of silent failures (e.g., "Khong ket noi duoc OpenAI, dang chuyen sang Groq")
 - [ ] **ERRH-03**: Error earcon plays before spoken error (distinct beep for errors vs success)
 - [ ] **ERRH-04**: Structured error logging via structlog with context vars (provider, skill, latency)
 - [ ] **ERRH-05**: Standardized SkillResult error format returned from all skills
@@ -50,7 +50,7 @@ Requirements for production hardening milestone. Each maps to roadmap phases.
 ### Progress Feedback
 
 - [ ] **PROG-01**: Immediate acknowledgment earcon plays when wake word detected (user knows system heard them)
-- [ ] **PROG-02**: Timeout-based progress update — if skill runs >3s, speak "Đang xử lý..." with periodic updates
+- [ ] **PROG-02**: Timeout-based progress update — if skill runs >3s, speak "Dang xu ly..." with periodic updates
 
 ### Safety & Security
 
@@ -108,47 +108,47 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| BGIN-01 | TBD | Pending |
-| BGIN-02 | TBD | Pending |
-| BGIN-03 | TBD | Pending |
-| BGIN-04 | TBD | Pending |
-| STTS-01 | TBD | Pending |
-| STTS-02 | TBD | Pending |
-| STTS-03 | TBD | Pending |
-| STTS-04 | TBD | Pending |
-| PROV-01 | TBD | Pending |
-| PROV-02 | TBD | Pending |
-| PROV-03 | TBD | Pending |
-| PROV-04 | TBD | Pending |
-| PROV-05 | TBD | Pending |
-| PROV-06 | TBD | Pending |
-| PROV-07 | TBD | Pending |
-| ERRH-01 | TBD | Pending |
-| ERRH-02 | TBD | Pending |
-| ERRH-03 | TBD | Pending |
-| ERRH-04 | TBD | Pending |
-| ERRH-05 | TBD | Pending |
-| AUDR-01 | TBD | Pending |
-| AUDR-02 | TBD | Pending |
-| AUDR-03 | TBD | Pending |
-| AUDR-04 | TBD | Pending |
-| AUDR-05 | TBD | Pending |
-| PROG-01 | TBD | Pending |
-| PROG-02 | TBD | Pending |
-| SAFE-01 | TBD | Pending |
-| SAFE-02 | TBD | Pending |
-| SAFE-03 | TBD | Pending |
-| SAFE-04 | TBD | Pending |
-| SAFE-05 | TBD | Pending |
-| SAFE-06 | TBD | Pending |
-| SAFE-07 | TBD | Pending |
-| SAFE-08 | TBD | Pending |
+| BGIN-01 | Phase 6: Barge-In & Echo Prevention | Pending |
+| BGIN-02 | Phase 6: Barge-In & Echo Prevention | Pending |
+| BGIN-03 | Phase 6: Barge-In & Echo Prevention | Pending |
+| BGIN-04 | Phase 6: Barge-In & Echo Prevention | Pending |
+| STTS-01 | Phase 5: Streaming TTS Pipeline | Pending |
+| STTS-02 | Phase 5: Streaming TTS Pipeline | Pending |
+| STTS-03 | Phase 5: Streaming TTS Pipeline | Pending |
+| STTS-04 | Phase 5: Streaming TTS Pipeline | Pending |
+| PROV-01 | Phase 4: Provider Fallback Chains | Pending |
+| PROV-02 | Phase 4: Provider Fallback Chains | Pending |
+| PROV-03 | Phase 4: Provider Fallback Chains | Pending |
+| PROV-04 | Phase 3: Provider Connection Infrastructure | Pending |
+| PROV-05 | Phase 3: Provider Connection Infrastructure | Pending |
+| PROV-06 | Phase 3: Provider Connection Infrastructure | Pending |
+| PROV-07 | Phase 3: Provider Connection Infrastructure | Pending |
+| ERRH-01 | Phase 1: Error Foundation & Shared Primitives | Pending |
+| ERRH-02 | Phase 4: Provider Fallback Chains | Pending |
+| ERRH-03 | Phase 7: Audio Feedback & Progress | Pending |
+| ERRH-04 | Phase 1: Error Foundation & Shared Primitives | Pending |
+| ERRH-05 | Phase 1: Error Foundation & Shared Primitives | Pending |
+| AUDR-01 | Phase 6: Barge-In & Echo Prevention | Pending |
+| AUDR-02 | Phase 8: VAD Hardening | Pending |
+| AUDR-03 | Phase 8: VAD Hardening | Pending |
+| AUDR-04 | Phase 2: Audio I/O Layer | Pending |
+| AUDR-05 | Phase 2: Audio I/O Layer | Pending |
+| PROG-01 | Phase 7: Audio Feedback & Progress | Pending |
+| PROG-02 | Phase 7: Audio Feedback & Progress | Pending |
+| SAFE-01 | Phase 9: Safety & Security Hardening | Pending |
+| SAFE-02 | Phase 9: Safety & Security Hardening | Pending |
+| SAFE-03 | Phase 9: Safety & Security Hardening | Pending |
+| SAFE-04 | Phase 9: Safety & Security Hardening | Pending |
+| SAFE-05 | Phase 9: Safety & Security Hardening | Pending |
+| SAFE-06 | Phase 9: Safety & Security Hardening | Pending |
+| SAFE-07 | Phase 9: Safety & Security Hardening | Pending |
+| SAFE-08 | Phase 9: Safety & Security Hardening | Pending |
 
 **Coverage:**
 - v1 requirements: 35 total
-- Mapped to phases: 0
-- Unmapped: 35
+- Mapped to phases: 35
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-04-09*
-*Last updated: 2026-04-09 after initial definition*
+*Last updated: 2026-04-09 after roadmap creation — traceability table populated*
