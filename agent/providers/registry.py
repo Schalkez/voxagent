@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from core.errors import ErrorSeverity, ProviderError
+
 if TYPE_CHECKING:
     from providers.base import (
         LLMProvider,
@@ -17,8 +19,18 @@ if TYPE_CHECKING:
     )
 
 
-class ProviderNotFoundError(KeyError):
+class ProviderNotFoundError(ProviderError, KeyError):
     """Raised when a requested provider is not registered."""
+
+    def __init__(self, msg: str) -> None:
+        ProviderError.__init__(
+            self,
+            msg,
+            provider_name="",
+            severity=ErrorSeverity.WARNING,
+            user_message="Khong tim thay nha cung cap.",
+            retryable=False,
+        )
 
 
 class ProviderRegistry:
