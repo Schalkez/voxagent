@@ -32,6 +32,116 @@ class TestSkillResult:
         assert result1.data is not result2.data  # Separate instances
 
 
+class TestSkillResultNewFields:
+    """Tests for the new typed error fields."""
+
+    def test_error_code_default_empty(self) -> None:
+        result = SkillResult(success=False, error="something")
+        assert result.error_code == ""
+
+    def test_error_severity_default_warning(self) -> None:
+        result = SkillResult(success=False, error="something")
+        assert result.error_severity == "warning"
+
+    def test_retryable_default_false(self) -> None:
+        result = SkillResult(success=False, error="something")
+        assert result.retryable is False
+
+    def test_retryable_explicit_true(self) -> None:
+        result = SkillResult(success=False, error="timeout", retryable=True)
+        assert result.retryable is True
+
+    def test_backward_compat_no_new_fields(self) -> None:
+        """Existing code that doesn't use new fields should still work."""
+        result = SkillResult(success=True, tts_response="Done!")
+        assert result.error_code == ""
+        assert result.error_severity == "warning"
+        assert result.retryable is False
+
+
+class TestSkillResultOk:
+    """Tests for SkillResult.ok() convenience method."""
+
+    def test_basic_ok(self) -> None:
+        result = SkillResult.ok(tts_response="Done!")
+        assert result.success is True
+        assert result.tts_response == "Done!"
+        assert result.error is None
+
+    def test_ok_with_data(self) -> None:
+        result = SkillResult.ok(data={"key": "value"})
+        assert result.data == {"key": "value"}
+
+    def test_ok_with_tier(self) -> None:
+        result = SkillResult.ok(tier_used=ExecutionTier.NATIVE_API)
+        assert result.tier_used == ExecutionTier.NATIVE_API
+
+    def test_ok_defaults(self) -> None:
+        result = SkillResult.ok()
+        assert result.success is True
+        assert result.tts_response == ""
+        assert result.data == {}
+        assert result.error is None
+        assert result.error_code == ""
+        assert result.retryable is False
+
+
+class TestSkillResultFail:
+    """Tests for SkillResult.fail() convenience method."""
+
+    def test_basic_fail(self) -> None:
+        result = SkillResult.fail(error="broke")
+        assert result.success is False
+        assert result.error == "broke"
+
+    def test_fail_with_code(self) -> None:
+        result = SkillResult.fail(
+            error="timeout",
+            error_code="timeout",
+            error_severity="warning",
+            retryable=True,
+        )
+        assert result.error_code == "timeout"
+        assert result.error_severity == "warning"
+        assert result.retryable is True
+
+    def test_fail_with_tts(self) -> None:
+        result = SkillResult.fail(
+            error="blocked",
+            tts_response="Lenh bi chan.",
+            error_code="command_blocked",
+        )
+        assert result.tts_response == "Lenh bi chan."
+
+    def test_fail_with_data(self) -> None:
+        result = SkillResult.fail(
+            error="partial",
+            data={"partial": "result"},
+            error_code="command_failed",
+        )
+        assert result.data == {"partial": "result"}
+
+    def test_fail_with_tier(self) -> None:
+        result = SkillResult.fail(
+            error="shell failed",
+            error_code="execution_error",
+            tier_used=ExecutionTier.SHELL,
+        )
+        assert result.tier_used == ExecutionTier.SHELL
+
+    def test_fail_default_severity(self) -> None:
+        result = SkillResult.fail(error="something")
+        assert result.error_severity == "warning"
+
+    def test_fail_critical_severity(self) -> None:
+        result = SkillResult.fail(
+            error="fatal",
+            error_code="system_failure",
+            error_severity="critical",
+        )
+        assert result.error_severity == "critical"
+
+
 class TestExecutionTier:
     """Tests for ExecutionTier enum."""
 
