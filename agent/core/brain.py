@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from enum import IntEnum
 from typing import TYPE_CHECKING
 
+from core.errors import PipelineError, ProviderError
 from core.eyes import Eyes
 from providers.base import Message
 from providers.registry import ProviderNotFoundError, ProviderRegistry
@@ -146,7 +147,14 @@ class Brain:
             llm = self.registry.get_llm(provider_name)
         except ProviderNotFoundError:
             # Fallback to local
-            llm = self.registry.get_llm("ollama")
+            try:
+                llm = self.registry.get_llm("ollama")
+            except ProviderNotFoundError as fallback_err:
+                raise PipelineError(
+                    "No LLM providers available",
+                    stage="brain",
+                    user_message="Khong co mo hinh AI nao san sang.",
+                ) from fallback_err
 
         # 2. Build Tools from Skills
         tools = self._build_tools_schema()
@@ -161,7 +169,7 @@ class Brain:
                 screen_content = await self.eyes.read_screen_text()
                 if screen_content:
                     sys_prompt += f"\n\nCURRENT SCREEN TEXT CONTEXT:\n{screen_content}"
-            except Exception as e:
+            except (OSError, RuntimeError) as e:
                 logger.warning("Failed to inject screen context: %s", e)
 
         messages = [Message(role="system", content=sys_prompt), Message(role="user", content=text)]
@@ -196,7 +204,9 @@ class Brain:
                     tier_used=target_tier,
                 )
 
-        except (ProviderNotFoundError, KeyError, json.JSONDecodeError, TypeError, ValueError) as e:
+        except ProviderError:
+            raise  # Let provider errors propagate for fallback handling
+        except (KeyError, json.JSONDecodeError, TypeError, ValueError) as e:
             # On failure, return unknown intent instead of crashing the pipeline
             logger.error("Failed to extract intent from LLM response: %s", e)
 
