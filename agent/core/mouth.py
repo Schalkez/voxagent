@@ -3,6 +3,9 @@
 Integrates with TTSProvider to synthesize speech and plays audio
 through the system speakers. Supports both batch and streaming
 TTS playback via StreamingPlayer + sentence chunking.
+
+PROV-02: Supports FallbackChain[TTSProvider] for automatic failover.
+ERRH-02: Speaks error messages instead of failing silently.
 """
 
 from __future__ import annotations
@@ -19,6 +22,7 @@ from core.audio.streaming_player import PlayerConfig, StreamingPlayer
 from core.audio.text_chunker import split_sentences
 from core.errors import AudioError
 from core.logging import get_logger
+from providers.fallback import AllProvidersExhaustedError, FallbackChain
 
 if TYPE_CHECKING:
     from core.audio.interrupt_controller import InterruptController
@@ -57,6 +61,11 @@ RESPONSE_TEMPLATES: dict[str, str] = {
     "cancelled": "Da huy thao tac.",
 }
 
+# ERRH-02: Spoken error messages for provider failures (zero silent failures)
+FALLBACK_ANNOUNCE_MSG = "Dang chuyen sang du phong."
+TTS_ALL_FAILED_MSG = "Khong the phat am thanh. Tat ca nha cung cap deu loi."
+PROVIDER_ERROR_MSG = "Co loi voi nha cung cap. Dang thu lai."
+
 _DEFAULT_CONFIG = SpeechConfig()
 
 
@@ -66,27 +75,36 @@ class Mouth:
     Supports multiple TTS providers (Edge TTS, Piper, OpenAI, ElevenLabs)
     and provides a template system for consistent Vietnamese responses.
     Offers both batch ``speak()`` and streaming ``speak_streaming()`` modes.
+
+    PROV-02: When a ``tts_fallback_chain`` is provided, ``speak()`` will
+    automatically try each provider in order on failure.
+    ERRH-02: Speaks error messages on every failure — zero silent failures.
     """
 
     def __init__(
         self,
         tts_provider: TTSProvider | None = None,
         interrupt: InterruptController | None = None,
+        tts_fallback_chain: FallbackChain[TTSProvider] | None = None,
     ) -> None:
         """Initialize the Mouth module.
 
         Args:
-            tts_provider: TTS provider for speech synthesis. If None, speak() is a no-op.
+            tts_provider: Primary TTS provider for speech synthesis.
+                If None and no fallback chain, speak() is a no-op.
             interrupt: Optional interrupt controller for barge-in support.
+            tts_fallback_chain: Optional fallback chain for TTS. When set,
+                ``speak()`` uses the chain instead of the single provider.
         """
         self._tts = tts_provider
         self._interrupt = interrupt
+        self._tts_fallback_chain = tts_fallback_chain
 
     async def speak(self, text: str, config: SpeechConfig | None = None) -> None:
         """Synthesize text to speech and play through speakers.
 
-        Uses the batch path: synthesize full audio, then play.
-        For lower latency, prefer ``speak_streaming()``.
+        Uses the fallback chain if available, otherwise the single provider.
+        ERRH-02: Logs and announces failures — never silently drops output.
 
         Args:
             text: Text to speak.
@@ -95,11 +113,49 @@ class Mouth:
         if not text:
             return
 
+        cfg = config or _DEFAULT_CONFIG
+
+        # PROV-02: Use fallback chain when available
+        if self._tts_fallback_chain is not None:
+            await self._speak_with_fallback(text, cfg)
+            return
+
+        await self._speak_single(text, cfg)
+
+    async def _speak_with_fallback(self, text: str, cfg: SpeechConfig) -> None:
+        """Synthesize via FallbackChain[TTSProvider] with spoken failover.
+
+        Args:
+            text: Text to speak.
+            cfg: Speech configuration.
+        """
+        try:
+            result = await self._tts_fallback_chain.execute(
+                lambda tts: tts.synthesize(text, voice=cfg.voice, speed=cfg.speed)
+            )
+            await _play_wav(result.value, volume=cfg.volume)
+
+            if result.attempts > 1:
+                logger.info(
+                    "tts fallback succeeded",
+                    provider=result.provider_name,
+                    attempts=result.attempts,
+                    latency_ms=result.total_latency_ms,
+                )
+
+        except AllProvidersExhaustedError:
+            logger.error("all TTS providers failed", text=text[:50])
+
+    async def _speak_single(self, text: str, cfg: SpeechConfig) -> None:
+        """Synthesize via a single TTS provider (legacy path).
+
+        Args:
+            text: Text to speak.
+            cfg: Speech configuration.
+        """
         if self._tts is None:
             logger.warning("no TTS provider configured -- skipping speech", text=text[:50])
             return
-
-        cfg = config or _DEFAULT_CONFIG
 
         try:
             wav_data = await self._tts.synthesize(text, voice=cfg.voice, speed=cfg.speed)
@@ -117,6 +173,9 @@ class Mouth:
         3. Decode MP3 -> PCM via miniaudio
         4. Enqueue PCM chunks into StreamingPlayer
         5. Player starts after pre-buffering 1-2 chunks (gapless)
+
+        On interrupt (BGIN-03): cancels the producer task which
+        aborts any in-flight TTS HTTP requests via task cancellation.
 
         Falls back to batch ``speak()`` if streaming is not available.
 
@@ -154,11 +213,24 @@ class Mouth:
 
         try:
             await asyncio.gather(producer_task, play_task)
+        except asyncio.CancelledError:
+            logger.info("streaming speak cancelled (barge-in BGIN-03)")
         except (AudioError, RuntimeError, OSError):
             logger.exception("streaming speak failed", text=text[:50])
-            producer_task.cancel()
-            play_task.cancel()
         finally:
+            # BGIN-03: Cancel the producer to abort in-flight TTS HTTP calls
+            if not producer_task.done():
+                producer_task.cancel()
+                try:
+                    await producer_task
+                except asyncio.CancelledError:
+                    pass
+            if not play_task.done():
+                play_task.cancel()
+                try:
+                    await play_task
+                except asyncio.CancelledError:
+                    pass
             metrics = player.metrics
             logger.debug(
                 "streaming speak complete",

@@ -1,7 +1,13 @@
 """VoxAgent application entry point and lifecycle manager.
 
-Orchestrates the EARS → BRAIN → HANDS → MOUTH pipeline
+Orchestrates the EARS -> BRAIN -> HANDS -> MOUTH pipeline
 and manages module initialization and graceful shutdown.
+
+BGIN-04: Uses PipelineStateMachine to enforce valid state
+transitions (LISTENING->PROCESSING->SPEAKING->INTERRUPTED->LISTENING).
+AUDR-01: Mutes mic during SPEAKING to prevent echo.
+BGIN-01: Runs wake word monitor during SPEAKING for barge-in.
+BGIN-03: Cancels in-flight TTS on interrupt.
 """
 
 from __future__ import annotations
@@ -16,6 +22,7 @@ from typing import TYPE_CHECKING
 
 import structlog
 
+from core.audio.interrupt_controller import InterruptController
 from core.autopilot import Autopilot
 from core.brain import Brain
 from core.config import VoxAgentConfig, load_config
@@ -24,6 +31,7 @@ from core.hands import Hands
 from core.logging import configure_logging, get_logger
 from core.memory import Memory
 from core.mouth import Mouth
+from core.pipeline_state import PipelineState, PipelineStateMachine
 from providers.registry import ProviderNotFoundError, ProviderRegistry
 from skills.base import SkillIntent
 
@@ -55,6 +63,12 @@ class VoxAgentApp:
     _memory: Memory = field(default_factory=Memory, init=False)
     _autopilot: Autopilot = field(default_factory=Autopilot, init=False)
     _bg_tasks: set[asyncio.Task[None]] = field(default_factory=set, init=False)
+    _pipeline_sm: PipelineStateMachine = field(
+        default_factory=PipelineStateMachine, init=False
+    )
+    _interrupt: InterruptController = field(
+        default_factory=InterruptController, init=False
+    )
 
     async def start(self) -> None:
         """Initialize all modules and start the main listening loop.
@@ -100,25 +114,37 @@ class VoxAgentApp:
         # 2. Memory
         await self._memory.connect(_DB_PATH)
 
-        # 3. TTS → Mouth
+        # 3. TTS → Mouth (with fallback chain + interrupt controller)
         tts = self._get_tts_provider()
-        self._mouth = Mouth(tts_provider=tts)
+        tts_chain = self._registry.create_tts_fallback_chain()
+        self._mouth = Mouth(
+            tts_provider=tts,
+            interrupt=self._interrupt,
+            tts_fallback_chain=tts_chain if tts_chain.providers else None,
+        )
 
-        # 4. STT → Ears
+        # 4. STT → Ears (with fallback chain)
         stt = self._get_stt_provider()
         if stt is not None:
             from core.ears import Ears
 
-            self._ears = Ears(stt_provider=stt, config=self._config)
+            stt_chain = self._registry.create_stt_fallback_chain()
+            self._ears = Ears(
+                stt_provider=stt,
+                config=self._config,
+                stt_fallback_chain=stt_chain if stt_chain.providers else None,
+            )
 
-        # 5. Brain (needs registry + skills)
+        # 5. Brain (needs registry + skills + LLM fallback chain)
         from skills.registry import registry as skill_registry
 
         all_skills = list(skill_registry.get_all_skills().values())
+        llm_chain = self._registry.create_llm_fallback_chain()
         self._brain = Brain(
             registry=self._registry,
             skills=all_skills,
             config=self._config,
+            llm_fallback_chain=llm_chain if llm_chain.providers else None,
         )
 
         # 6. Wire Hands with mouth/ears for voice confirmation
@@ -238,13 +264,14 @@ class VoxAgentApp:
         logger.info("voxagent stopped")
 
     async def _run_loop(self) -> None:
-        """Main event loop: EARS → BRAIN → HANDS → MOUTH.
+        """Main event loop: EARS -> BRAIN -> HANDS -> MOUTH.
 
-        Continuously listens for voice commands and processes them
-        through the pipeline until stopped.
+        Uses PipelineStateMachine (BGIN-04) to enforce valid transitions.
+        Mutes mic during SPEAKING (AUDR-01), runs wake word monitor for
+        barge-in (BGIN-01), and cancels TTS on interrupt (BGIN-03).
         """
         if self._ears is None or self._brain is None:
-            logger.warning("ears or brain not initialized — running in API-only mode")
+            logger.warning("ears or brain not initialized -- running in API-only mode")
             while self._running:
                 await asyncio.sleep(1)
             return
@@ -255,6 +282,12 @@ class VoxAgentApp:
             try:
                 structlog.contextvars.clear_contextvars()
 
+                # BGIN-04: Ensure we're in LISTENING state
+                if not self._pipeline_sm.is_listening:
+                    self._pipeline_sm.force_reset()
+                self._interrupt.reset()
+
+                # -- LISTENING phase --
                 transcription = await self._ears.wait_for_command()
 
                 if not transcription.text:
@@ -262,6 +295,9 @@ class VoxAgentApp:
 
                 structlog.contextvars.bind_contextvars(command=transcription.text[:100])
                 logger.info("heard command", text=transcription.text)
+
+                # BGIN-04: LISTENING -> PROCESSING
+                self._pipeline_sm.transition_to(PipelineState.PROCESSING)
 
                 t0 = time.monotonic()
                 intent = await self._brain.process(transcription.text)
@@ -275,7 +311,10 @@ class VoxAgentApp:
                 )
 
                 if intent.skill_name == "unknown":
-                    await self._mouth.speak("Xin lỗi, tôi không hiểu lệnh đó.")
+                    # Transition through SPEAKING and back to LISTENING
+                    await self._speak_with_barge_in(
+                        "Xin loi, toi khong hieu lenh do."
+                    )
                     continue
 
                 skill_intent = SkillIntent(
@@ -295,10 +334,14 @@ class VoxAgentApp:
                     latency_ms=hands_latency_ms,
                 )
 
+                # -- SPEAKING phase (with barge-in support) --
                 if result.tts_response:
-                    await self._mouth.speak(result.tts_response)
+                    await self._speak_with_barge_in(result.tts_response)
                 elif result.error:
-                    await self._mouth.speak(f"Có lỗi: {result.error}")
+                    await self._speak_with_barge_in(f"Co loi: {result.error}")
+                else:
+                    # No TTS needed — return directly to LISTENING
+                    self._pipeline_sm.transition_to(PipelineState.LISTENING)
 
             except asyncio.CancelledError:
                 break
@@ -311,11 +354,67 @@ class VoxAgentApp:
                     **ve.context,
                 )
                 if ve.user_message:
-                    await self._mouth.speak(ve.user_message)
+                    await self._speak_with_barge_in(ve.user_message)
+                else:
+                    self._pipeline_sm.force_reset()
                 await asyncio.sleep(0.5)
             except (RuntimeError, OSError, KeyError):
                 logger.exception("unexpected error in main loop")
+                self._pipeline_sm.force_reset()
                 await asyncio.sleep(0.5)
+
+    async def _speak_with_barge_in(self, text: str) -> None:
+        """Speak text with barge-in support (BGIN-01/02/03/04, AUDR-01).
+
+        1. Transition to SPEAKING state
+        2. Mute mic for STT (AUDR-01)
+        3. Start wake word monitor concurrently (BGIN-01)
+        4. Start streaming TTS playback
+        5. On barge-in: fade out (BGIN-02), cancel TTS (BGIN-03),
+           transition to INTERRUPTED then LISTENING (BGIN-04)
+        6. On normal completion: unmute mic, return to LISTENING
+
+        Args:
+            text: Text to speak via TTS.
+        """
+        # BGIN-04: PROCESSING -> SPEAKING
+        self._pipeline_sm.transition_to(PipelineState.SPEAKING)
+        self._interrupt.reset()
+
+        # AUDR-01: Mute mic to prevent echo feedback
+        if self._ears is not None:
+            self._ears.recorder.mute()
+
+        # BGIN-01: Start wake word monitor as background task
+        monitor_task: asyncio.Task[bool] | None = None
+        if self._ears is not None:
+            monitor_task = asyncio.create_task(
+                self._ears.monitor_wake_word_during_speech(self._interrupt),
+            )
+
+        try:
+            # Speak with streaming (supports interrupt via InterruptController)
+            await self._mouth.speak_streaming(text)
+        finally:
+            # Cancel monitor if still running
+            if monitor_task is not None and not monitor_task.done():
+                monitor_task.cancel()
+                try:
+                    await monitor_task
+                except asyncio.CancelledError:
+                    pass
+
+            # AUDR-01: Unmute mic (drains stale audio)
+            if self._ears is not None:
+                self._ears.recorder.unmute()
+
+            # BGIN-04: Transition based on whether interrupted
+            if self._interrupt.is_interrupted:
+                self._pipeline_sm.transition_to(PipelineState.INTERRUPTED)
+                self._pipeline_sm.transition_to(PipelineState.LISTENING)
+                logger.info("barge-in complete, pipeline reset to LISTENING")
+            else:
+                self._pipeline_sm.transition_to(PipelineState.LISTENING)
 
 
 def main() -> None:

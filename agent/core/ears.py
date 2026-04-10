@@ -5,10 +5,16 @@ Pipeline: Mic -> Wake Word -> VAD -> STT -> Raw text
 This module orchestrates the audio sub-components (AudioRecorder,
 WakeWordDetector, AdaptiveVAD, AudioConverter) and delegates
 STT to an injected provider. It contains no audio logic itself.
+
+PROV-03: Supports FallbackChain[STTProvider] for STT failover.
+AUDR-01: Mic is muted during SPEAKING state (echo prevention).
+BGIN-01: Wake word detection runs continuously during SPEAKING
+state for barge-in support (reads raw audio bypassing mute).
 """
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum, auto
@@ -25,8 +31,10 @@ from core.errors import AudioError, PipelineError
 from core.logging import get_logger
 
 if TYPE_CHECKING:
+    from core.audio.interrupt_controller import InterruptController
     from core.config import VoxAgentConfig
     from providers.base import STTProvider, TranscribeResult
+    from providers.fallback import FallbackChain
 
 logger = get_logger(module="ears")
 
@@ -34,6 +42,7 @@ logger = get_logger(module="ears")
 
 VAD_SILENCE_TIMEOUT_S: float = 1.5
 MAX_RECORDING_S: int = 30
+WAKE_WORD_MONITOR_POLL_S: float = 0.005  # 5ms poll for <100ms latency (BGIN-01)
 
 
 # -- Data Classes --
@@ -98,10 +107,12 @@ class Ears:
         self,
         stt_provider: STTProvider,
         config: VoxAgentConfig,
+        stt_fallback_chain: FallbackChain[STTProvider] | None = None,
     ) -> None:
         self._stt_provider = stt_provider
         self._config = config
         self._state = EarsState.IDLE
+        self._stt_fallback_chain = stt_fallback_chain
 
         # Sub-components (SRP: each has one job)
         self._recorder = AudioRecorder()
@@ -126,6 +137,11 @@ class Ears:
     def adaptive_vad(self) -> AdaptiveVAD:
         """Access to the adaptive VAD for metric inspection."""
         return self._adaptive_vad
+
+    @property
+    def recorder(self) -> AudioRecorder:
+        """Access to the audio recorder for mute/unmute control (AUDR-01)."""
+        return self._recorder
 
     # -- Event System --
 
@@ -179,6 +195,49 @@ class Ears:
     async def stop(self) -> None:
         """Alias for stop_listening() -- used by VoxAgentApp lifecycle."""
         await self.stop_listening()
+
+    # -- BGIN-01: Barge-In Monitor --
+
+    async def monitor_wake_word_during_speech(
+        self,
+        interrupt: InterruptController,
+    ) -> bool:
+        """Run wake word detection during TTS playback for barge-in (BGIN-01).
+
+        Reads raw audio (bypassing the mute flag) and feeds it to the
+        wake word detector. When detected, triggers the interrupt
+        controller. Designed to run as a concurrent task during SPEAKING.
+
+        Latency target: <100ms from wake word utterance to interrupt signal.
+
+        Args:
+            interrupt: The interrupt controller to trigger on detection.
+
+        Returns:
+            True if wake word was detected and interrupt was triggered.
+        """
+        if not self._recorder.is_active:
+            return False
+
+        logger.debug("barge-in monitor started (BGIN-01)")
+
+        try:
+            while not interrupt.is_interrupted:
+                # Read raw audio — bypasses mute so we hear the user
+                chunk = await self._recorder.read_chunk_raw()
+                if chunk is None:
+                    await asyncio.sleep(WAKE_WORD_MONITOR_POLL_S)
+                    continue
+
+                if self._wake_word_detector.detect(chunk):
+                    logger.info("barge-in: wake word detected during TTS playback")
+                    interrupt.interrupt()
+                    return True
+        except asyncio.CancelledError:
+            logger.debug("barge-in monitor cancelled")
+            raise
+
+        return False
 
     # -- Main Pipeline --
 
@@ -306,17 +365,18 @@ class Ears:
         return frames
 
     async def _transcribe_frames(self, frames: list[np.ndarray]) -> TranscribeResult:
-        """Convert frames to WAV and transcribe via STT provider."""
+        """Convert frames to WAV and transcribe via STT provider.
+
+        PROV-03: Uses FallbackChain[STTProvider] if available, with automatic
+        failover from cloud to local within the 4s budget.
+        """
         wav_bytes = AudioConverter.frames_to_wav(frames)
         duration_ms = int(len(frames) * CHUNK_DURATION_MS)
 
         self._emit(EarsState.TRANSCRIBING, "Transcribing...")
         logger.info("transcribing audio", duration_ms=duration_ms)
 
-        result = await self._stt_provider.transcribe(
-            wav_bytes,
-            language=self._config.stt.language,
-        )
+        result = await self._transcribe_with_fallback(wav_bytes)
 
         self._emit(
             EarsState.LISTENING_FOR_WAKE_WORD,
@@ -329,3 +389,43 @@ class Ears:
             duration_ms=duration_ms,
         )
         return result
+
+    async def _transcribe_with_fallback(self, wav_bytes: bytes) -> TranscribeResult:
+        """Transcribe audio, using the fallback chain when available.
+
+        Args:
+            wav_bytes: WAV audio data.
+
+        Returns:
+            TranscribeResult from the first successful provider.
+
+        Raises:
+            PipelineError: If all STT providers fail.
+        """
+        language = self._config.stt.language
+
+        if self._stt_fallback_chain is not None:
+            from providers.fallback import AllProvidersExhaustedError
+
+            try:
+                chain_result = await self._stt_fallback_chain.execute(
+                    lambda stt: stt.transcribe(wav_bytes, language=language)
+                )
+                if chain_result.attempts > 1:
+                    logger.info(
+                        "stt fallback succeeded",
+                        provider=chain_result.provider_name,
+                        attempts=chain_result.attempts,
+                        latency_ms=chain_result.total_latency_ms,
+                    )
+                return chain_result.value
+
+            except AllProvidersExhaustedError as exc:
+                raise PipelineError(
+                    "All STT providers failed",
+                    stage="ears",
+                    user_message="Khong the nhan dien giong noi.",
+                ) from exc
+
+        # Single-provider path (backward compatible)
+        return await self._stt_provider.transcribe(wav_bytes, language=language)

@@ -23,11 +23,13 @@ from core.logging import get_logger
 from core.param_extractor import extract_params
 from core.safety import PromptGuard
 from providers.base import Message
+from providers.fallback import AllProvidersExhaustedError, FallbackChain
 from providers.registry import ProviderNotFoundError, ProviderRegistry
 from skills.base import BaseSkill
 
 if TYPE_CHECKING:
     from core.config import VoxAgentConfig
+    from providers.base import LLMProvider
 
 logger = get_logger(module="brain")
 
@@ -72,6 +74,7 @@ class Brain:
         skills: list[BaseSkill],
         routing_config: dict[str, object] | None = None,
         config: VoxAgentConfig | None = None,
+        llm_fallback_chain: FallbackChain[LLMProvider] | None = None,
     ) -> None:
         """Initialize the Brain orchestrator.
 
@@ -80,11 +83,15 @@ class Brain:
             skills: List of registered BaseSkill objects.
             routing_config: Tier-based routing configurations (legacy).
             config: Full VoxAgentConfig (preferred). Overrides routing_config.
+            llm_fallback_chain: Optional pre-built LLM fallback chain.
+                If provided, ``_try_llm_routing`` will use it for automatic
+                failover instead of single-provider calls.
         """
         self.registry = registry
         self.skills = {skill.name: skill for skill in skills}
         self.eyes = Eyes()
         self._prompt_guard = PromptGuard()
+        self._llm_fallback_chain = llm_fallback_chain
 
         if config is not None:
             # Extract routing tiers from config into dict format
@@ -150,9 +157,83 @@ class Brain:
         return None
 
     async def _try_llm_routing(self, text: str, target_tier: Tier) -> Intent:
-        """Call the LLM using Function Calling / Tools to classify intent."""
+        """Call the LLM using Function Calling / Tools to classify intent.
+
+        Uses the FallbackChain if available for automatic failover.
+        Falls back to direct provider lookup when no chain is configured.
+        """
+        tools = self._build_tools_schema()
+        messages = await self._build_messages(text)
+
+        # PROV-01: Use FallbackChain if available
+        if self._llm_fallback_chain is not None:
+            return await self._route_with_fallback(messages, tools, target_tier)
+
+        return await self._route_single_provider(text, messages, tools, target_tier)
+
+    async def _build_messages(self, text: str) -> list[Message]:
+        """Build the system + user messages for LLM routing."""
+        sys_prompt = (
+            "You are VoxAgent, an AI desktop assistant. Analyze the user's "
+            "voice command and select the appropriate tool (skill) to execute. "
+            "Always use tool calling."
+        )
+
+        text_lower = text.lower()
+        if any(kw in text_lower for kw in ["man hinh", "screen", "doc", "nhin", "thay"]):
+            try:
+                screen_content = await self.eyes.read_screen_text()
+                if screen_content:
+                    sys_prompt += f"\n\nCURRENT SCREEN TEXT CONTEXT:\n{screen_content}"
+            except (OSError, RuntimeError) as e:
+                logger.warning("failed to inject screen context", error=str(e))
+
+        return [Message(role="system", content=sys_prompt), Message(role="user", content=text)]
+
+    async def _route_with_fallback(
+        self,
+        messages: list[Message],
+        tools: list[dict[str, object]],
+        target_tier: Tier,
+    ) -> Intent:
+        """Route via FallbackChain[LLMProvider] with automatic failover.
+
+        Args:
+            messages: Chat messages for the LLM.
+            tools: Tool definitions for function calling.
+            target_tier: The target routing tier.
+
+        Returns:
+            Parsed Intent from the first successful provider.
+        """
+        try:
+            result = await self._llm_fallback_chain.execute(
+                lambda llm: llm.chat_with_tools(messages=messages, tools=tools)
+            )
+            logger.info(
+                "llm fallback chain result",
+                provider=result.provider_name,
+                attempts=result.attempts,
+                latency_ms=result.total_latency_ms,
+            )
+            return self._parse_tool_response(result.value, target_tier)
+
+        except AllProvidersExhaustedError:
+            raise PipelineError(
+                "All LLM providers failed",
+                stage="brain",
+                user_message="Tat ca mo hinh AI deu khong phan hoi.",
+            )
+
+    async def _route_single_provider(
+        self,
+        text: str,
+        messages: list[Message],
+        tools: list[dict[str, object]],
+        target_tier: Tier,
+    ) -> Intent:
+        """Legacy single-provider routing (when no fallback chain is set)."""
         # 1. Resolve Provider from Config
-        # In a real app, logic would map target_tier -> specific tier in config
         tier_idx = target_tier.value - 1
         tiers = self.routing_config.get("tiers", [])
         if tier_idx < 0 or tier_idx >= len(tiers):
@@ -165,7 +246,6 @@ class Brain:
         try:
             llm = self.registry.get_llm(provider_name)
         except ProviderNotFoundError:
-            # Fallback to local
             try:
                 llm = self.registry.get_llm("ollama")
             except ProviderNotFoundError as fallback_err:
@@ -175,39 +255,50 @@ class Brain:
                     user_message="Khong co mo hinh AI nao san sang.",
                 ) from fallback_err
 
-        # 2. Build Tools from Skills
-        tools = self._build_tools_schema()
-
-        # 3. System Prompt
-        sys_prompt = "You are VoxAgent, an AI desktop assistant. Analyze the user's voice command and select the appropriate tool (skill) to execute. Always use tool calling."
-
-        # Optionally inject vision context if the command references the screen
-        text_lower = text.lower()
-        if any(kw in text_lower for kw in ["màn hình", "screen", "đọc", "nhìn", "thấy"]):
-            try:
-                screen_content = await self.eyes.read_screen_text()
-                if screen_content:
-                    sys_prompt += f"\n\nCURRENT SCREEN TEXT CONTEXT:\n{screen_content}"
-            except (OSError, RuntimeError) as e:
-                logger.warning("failed to inject screen context", error=str(e))
-
-        messages = [Message(role="system", content=sys_prompt), Message(role="user", content=text)]
-
-        # 4. Inference
         try:
             response = await llm.chat_with_tools(messages=messages, tools=tools)
+            return self._parse_tool_response(response, target_tier)
+
+        except ProviderError:
+            raise
+        except (KeyError, json.JSONDecodeError, TypeError, ValueError) as e:
+            logger.error(
+                "failed to extract intent from LLM response",
+                error=str(e),
+                tier=target_tier.value,
+            )
+
+        return Intent(
+            skill_name="unknown",
+            action="unknown",
+            params={},
+            confidence=0.0,
+            tier_used=target_tier,
+        )
+
+    def _parse_tool_response(
+        self, response: dict[str, object], target_tier: Tier
+    ) -> Intent:
+        """Parse an LLM tool-call response into a structured Intent.
+
+        Args:
+            response: Dict with 'tool' and 'result' from chat_with_tools.
+            target_tier: The routing tier used.
+
+        Returns:
+            Parsed Intent with skill name, action, and params.
+        """
+        try:
             tool_name = str(response.get("tool", ""))
             args = response.get("result", {})
 
             if not isinstance(args, dict):
-                # Provider might have returned a JSON string instead of dict
                 try:
                     args = json.loads(str(args))
                 except json.JSONDecodeError:
                     args = {}
 
             if tool_name in self.skills:
-                # SAFE-03: Type-safe param extraction via Pydantic
                 extraction = extract_params(tool_name, args)
                 if extraction.success:
                     return Intent(
@@ -223,9 +314,10 @@ class Brain:
                     skill=tool_name,
                     error=extraction.error,
                 )
-                # Fallback: use raw extraction for backward compatibility
                 action = str(args.get("action", "default"))
-                params = {str(k): str(v) for k, v in args.items() if k not in ("action", "confidence")}
+                params = {
+                    str(k): str(v) for k, v in args.items() if k not in ("action", "confidence")
+                }
 
                 try:
                     confidence = float(args.get("confidence", 0.9))
@@ -240,11 +332,12 @@ class Brain:
                     tier_used=target_tier,
                 )
 
-        except ProviderError:
-            raise  # Let provider errors propagate for fallback handling
         except (KeyError, json.JSONDecodeError, TypeError, ValueError) as e:
-            # On failure, return unknown intent instead of crashing the pipeline
-            logger.error("failed to extract intent from LLM response", error=str(e), tier=target_tier.value)
+            logger.error(
+                "failed to parse tool response",
+                error=str(e),
+                tier=target_tier.value,
+            )
 
         return Intent(
             skill_name="unknown",
