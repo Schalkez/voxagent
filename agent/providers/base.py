@@ -2,11 +2,29 @@
 
 All provider implementations must inherit from these ABCs.
 Providers are registered in the ProviderRegistry and accessed
-through it — never imported directly by core modules.
+through it -- never imported directly by core modules.
+
+Includes ``HttpProvider`` mixin for shared httpx.AsyncClient lifecycle.
 """
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+import httpx
+
+if TYPE_CHECKING:
+    pass
+
+# ── Constants ────────────────────────────────────────────────────────────────
+
+DEFAULT_POOL_MAX_CONNECTIONS = 10
+DEFAULT_POOL_MAX_KEEPALIVE = 5
+DEFAULT_CONNECT_TIMEOUT_SECONDS = 5.0
+DEFAULT_READ_TIMEOUT_SECONDS = 30.0
 
 
 @dataclass(frozen=True)
@@ -56,7 +74,67 @@ class TranscribeResult:
     duration_ms: int
 
 
-class LLMProvider(ABC):
+# ── Shared HTTP Client Mixin ────────────────────────────────────────────────
+
+
+class HttpProvider:
+    """Mixin providing a shared httpx.AsyncClient per provider instance.
+
+    Creates exactly one ``httpx.AsyncClient`` lazily on first access
+    and reuses it across all requests. Connection pooling is configured
+    with sensible defaults. Call ``close()`` during application shutdown
+    to release connections.
+    """
+
+    _http_client: httpx.AsyncClient | None = None
+
+    def _get_http_timeout(self) -> httpx.Timeout:
+        """Return the httpx timeout configuration for this provider.
+
+        Subclasses can override to customise timeouts.
+
+        Returns:
+            httpx.Timeout instance.
+        """
+        return httpx.Timeout(
+            connect=DEFAULT_CONNECT_TIMEOUT_SECONDS,
+            read=DEFAULT_READ_TIMEOUT_SECONDS,
+            write=DEFAULT_READ_TIMEOUT_SECONDS,
+            pool=DEFAULT_CONNECT_TIMEOUT_SECONDS,
+        )
+
+    @property
+    def http_client(self) -> httpx.AsyncClient:
+        """Lazily initialise and return the shared httpx.AsyncClient.
+
+        Returns:
+            A reusable async HTTP client with connection pooling.
+        """
+        if self._http_client is None or self._http_client.is_closed:
+            self._http_client = httpx.AsyncClient(
+                timeout=self._get_http_timeout(),
+                limits=httpx.Limits(
+                    max_connections=DEFAULT_POOL_MAX_CONNECTIONS,
+                    max_keepalive_connections=DEFAULT_POOL_MAX_KEEPALIVE,
+                ),
+            )
+        return self._http_client
+
+    async def close(self) -> None:
+        """Close the shared HTTP client and release connections.
+
+        Safe to call multiple times. Should be called during
+        application shutdown (e.g., from ``VoxAgentApp.stop()``).
+        """
+        if self._http_client is not None and not self._http_client.is_closed:
+            await self._http_client.aclose()
+            self._http_client = None
+
+
+# ── Provider ABCs ────────────────────────────────────────────────────────────
+
+
+class LLMProvider(HttpProvider, ABC):
     """Abstract base class for Large Language Model providers."""
 
     @abstractmethod
@@ -106,7 +184,7 @@ class LLMProvider(ABC):
         """
 
 
-class STTProvider(ABC):
+class STTProvider(HttpProvider, ABC):
     """Abstract base class for Speech-to-Text providers."""
 
     @abstractmethod
@@ -118,14 +196,14 @@ class STTProvider(ABC):
         Args:
             audio: Raw audio data (WAV format).
             language: Target language code for transcription.
-            task: Task type — 'transcribe' or 'translate' (to English).
+            task: Task type -- 'transcribe' or 'translate' (to English).
 
         Returns:
             TranscribeResult with text and metadata.
         """
 
 
-class TTSProvider(ABC):
+class TTSProvider(HttpProvider, ABC):
     """Abstract base class for Text-to-Speech providers."""
 
     @abstractmethod
@@ -141,8 +219,31 @@ class TTSProvider(ABC):
             Raw audio bytes (WAV format).
         """
 
+    async def synthesize_stream(
+        self,
+        text: str,
+        voice: str = "vi-female",
+        speed: float = 1.0,
+    ) -> AsyncIterator[bytes]:
+        """Stream audio chunks as they become available.
 
-class VisionProvider(ABC):
+        Default implementation falls back to ``synthesize()`` and yields
+        the complete result as a single chunk. Providers with native
+        streaming (Edge TTS, ElevenLabs) should override this.
+
+        Args:
+            text: Text to convert to speech.
+            voice: Voice identifier.
+            speed: Playback speed multiplier.
+
+        Yields:
+            Raw audio bytes — format depends on provider (MP3 or WAV).
+        """
+        full_audio = await self.synthesize(text, voice=voice, speed=speed)
+        yield full_audio
+
+
+class VisionProvider(HttpProvider, ABC):
     """Abstract base class for Vision/Image understanding providers."""
 
     @abstractmethod

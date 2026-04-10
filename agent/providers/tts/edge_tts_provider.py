@@ -1,12 +1,14 @@
 """Edge TTS provider using Microsoft Edge's free text-to-speech service.
 
 No API key required. Excellent Vietnamese voice support.
+Supports both batch synthesis and streaming MP3 chunk output.
 """
 
 from __future__ import annotations
 
 import io
 import logging
+from collections.abc import AsyncIterator
 
 from providers.base import TTSProvider
 
@@ -19,6 +21,9 @@ _VOICE_MAP: dict[str, str] = {
     "en-female": "en-US-JennyNeural",
     "en-male": "en-US-GuyNeural",
 }
+
+# Minimum MP3 bytes to yield per streaming chunk (avoids micro-chunks)
+_MIN_STREAM_CHUNK_BYTES = 1024
 
 
 class EdgeTTSProvider(TTSProvider):
@@ -75,6 +80,65 @@ class EdgeTTSProvider(TTSProvider):
             return len(voices) > 0
         except (ImportError, RuntimeError, ConnectionError):
             return False
+
+    async def synthesize_stream(
+        self,
+        text: str,
+        voice: str = "vi-female",
+        speed: float = 1.0,
+    ) -> AsyncIterator[bytes]:
+        """Stream MP3 audio chunks as Edge TTS produces them.
+
+        Yields MP3 byte chunks incrementally instead of waiting for
+        the entire synthesis to complete. Each yielded chunk contains
+        raw MP3 data (NOT WAV). The consumer is responsible for
+        decoding (e.g., via miniaudio).
+
+        Args:
+            text: Text to convert to speech.
+            voice: Voice identifier (e.g., 'vi-female', 'en-male').
+            speed: Playback speed multiplier (1.0 = normal).
+
+        Yields:
+            Raw MP3 audio byte chunks (>= _MIN_STREAM_CHUNK_BYTES each,
+            except possibly the last chunk).
+        """
+        try:
+            import edge_tts  # type: ignore[import-untyped]
+        except ImportError as err:
+            msg = "edge-tts not installed. Run: pip install edge-tts"
+            raise RuntimeError(msg) from err
+
+        voice_id = _VOICE_MAP.get(voice, voice)
+        rate_str = _speed_to_rate(speed)
+        communicate = edge_tts.Communicate(text=text, voice=voice_id, rate=rate_str)
+
+        buffer = bytearray()
+        total_bytes = 0
+
+        async for chunk in communicate.stream():
+            if chunk["type"] != "audio":
+                continue
+
+            buffer.extend(chunk["data"])
+
+            if len(buffer) >= _MIN_STREAM_CHUNK_BYTES:
+                total_bytes += len(buffer)
+                yield bytes(buffer)
+                buffer.clear()
+
+        # Flush remaining bytes
+        if buffer:
+            total_bytes += len(buffer)
+            yield bytes(buffer)
+
+        logger.debug(
+            "Streamed %d chars -> %d bytes MP3 (voice=%s, speed=%.1f)",
+            len(text),
+            total_bytes,
+            voice_id,
+            speed,
+        )
 
 
 def _speed_to_rate(speed: float) -> str:
