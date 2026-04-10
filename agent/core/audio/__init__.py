@@ -11,10 +11,12 @@ Each module has a single responsibility:
 - adaptive_vad: Ambient-aware VAD with hysteresis (AUDR-02, AUDR-03)
 - text_chunker: Sentence-level text splitting for streaming TTS
 - streaming_player: Gapless audio playback from asyncio.Queue
+- earcons: Programmatic audio feedback tones (ERRH-03, PROG-01)
 """
 
 from core.audio.adaptive_vad import AdaptiveVAD, AdaptiveVADConfig
 from core.audio.converter import AudioConverter
+from core.audio.earcons import EarconType, play_earcon
 from core.audio.interrupt_controller import InterruptController
 from core.audio.normalizer import AudioNormalizer
 from core.audio.recorder import AudioRecorder
@@ -31,9 +33,11 @@ __all__ = [
     "AudioNormalizer",
     "AudioRecorder",
     "AudioRingBuffer",
+    "EarconType",
     "InterruptController",
     "StreamingPlayer",
     "VoiceActivityDetector",
     "WakeWordDetector",
+    "play_earcon",
     "split_sentences",
 ]
