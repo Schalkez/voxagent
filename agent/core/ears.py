@@ -1,9 +1,9 @@
 """EARS module: Voice input pipeline orchestrator.
 
-Pipeline: Mic → Wake Word → VAD → STT → Raw text
+Pipeline: Mic -> Wake Word -> VAD -> STT -> Raw text
 
 This module orchestrates the audio sub-components (AudioRecorder,
-WakeWordDetector, VoiceActivityDetector, AudioConverter) and delegates
+WakeWordDetector, AdaptiveVAD, AudioConverter) and delegates
 STT to an injected provider. It contains no audio logic itself.
 """
 
@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from core.audio.adaptive_vad import AdaptiveVAD, AdaptiveVADConfig, HysteresisState
 from core.audio.converter import AudioConverter
 from core.audio.recorder import CHUNK_DURATION_MS, AudioRecorder
 from core.audio.vad import VoiceActivityDetector
@@ -29,13 +30,13 @@ if TYPE_CHECKING:
 
 logger = get_logger(module="ears")
 
-# ── Named Constants ───────────────────────────────
+# -- Named Constants --
 
 VAD_SILENCE_TIMEOUT_S: float = 1.5
 MAX_RECORDING_S: int = 30
 
 
-# ── Data Classes ──────────────────────────────────
+# -- Data Classes --
 
 
 class EarsState(Enum):
@@ -75,15 +76,18 @@ class EmptyTranscribeResult:
     duration_ms: int = 0
 
 
-# ── Orchestrator ──────────────────────────────────
+# -- Orchestrator --
 
 
 class Ears:
     """Orchestrates the voice input pipeline.
 
-    Coordinates AudioRecorder, WakeWordDetector, VoiceActivityDetector,
+    Coordinates AudioRecorder, WakeWordDetector, AdaptiveVAD,
     and AudioConverter to implement the full voice-to-text flow.
-    Contains no audio processing logic — delegates to sub-components.
+    Contains no audio processing logic -- delegates to sub-components.
+
+    Uses AdaptiveVAD (AUDR-02, AUDR-03) for ambient-aware speech
+    detection with hysteresis to prevent premature cutoffs.
 
     Args:
         stt_provider: Injected STT provider for transcription.
@@ -105,6 +109,10 @@ class Ears:
             sensitivity=config.wake_word.sensitivity,
         )
         self._vad = VoiceActivityDetector()
+        self._adaptive_vad = AdaptiveVAD(
+            vad=self._vad,
+            config=AdaptiveVADConfig(),
+        )
 
         # Event callbacks
         self._event_callbacks: list[Callable[[EarsEvent], None]] = []
@@ -114,7 +122,12 @@ class Ears:
         """Current state of the Ears pipeline."""
         return self._state
 
-    # ── Event System ──────────────────────────────
+    @property
+    def adaptive_vad(self) -> AdaptiveVAD:
+        """Access to the adaptive VAD for metric inspection."""
+        return self._adaptive_vad
+
+    # -- Event System --
 
     def on_event(self, callback: Callable[[EarsEvent], None]) -> None:
         """Register a callback for pipeline state changes."""
@@ -130,7 +143,7 @@ class Ears:
             except (TypeError, ValueError, AttributeError):
                 logger.exception("Event callback error")
 
-    # ── Lifecycle ─────────────────────────────────
+    # -- Lifecycle --
 
     async def start_listening(self) -> None:
         """Start microphone and load detection models.
@@ -142,6 +155,7 @@ class Ears:
 
         self._wake_word_detector.load()
         self._vad.load()
+        self._adaptive_vad.reset()
         try:
             await self._recorder.start()
         except (RuntimeError, OSError) as e:
@@ -163,10 +177,10 @@ class Ears:
         self._emit(EarsState.STOPPED, "Ears stopped")
 
     async def stop(self) -> None:
-        """Alias for stop_listening() — used by VoxAgentApp lifecycle."""
+        """Alias for stop_listening() -- used by VoxAgentApp lifecycle."""
         await self.stop_listening()
 
-    # ── Main Pipeline ─────────────────────────────
+    # -- Main Pipeline --
 
     async def wait_for_command(self) -> TranscribeResult | EmptyTranscribeResult:
         """Wait for wake word, record speech, transcribe.
@@ -186,9 +200,10 @@ class Ears:
         )
         await self._wait_for_wake_word()
 
-        # Step 2: Record until silence
+        # Step 2: Record until silence (hysteresis-aware)
         self._emit(EarsState.RECORDING_SPEECH, "Recording...")
         logger.info("wake word detected — recording speech")
+        self._adaptive_vad.reset()
         frames = await self._record_until_silence()
 
         if not frames:
@@ -218,7 +233,7 @@ class Ears:
 
         return await self._transcribe_frames(frames)
 
-    # ── Internal: Orchestration ───────────────────
+    # -- Internal: Orchestration --
 
     def _ensure_started(self) -> None:
         """Guard clause: raise if not started."""
@@ -235,15 +250,22 @@ class Ears:
             chunk = await self._recorder.read_chunk()
             if chunk is None:
                 continue
+            # Feed chunks to adaptive VAD during idle to calibrate ambient noise
+            self._adaptive_vad.process_chunk(chunk)
             if self._wake_word_detector.detect(chunk):
                 return
 
     async def _record_until_silence(self) -> list[np.ndarray]:
-        """Record audio frames until VAD detects end-of-speech."""
+        """Record audio frames until AdaptiveVAD detects end-of-speech.
+
+        Uses hysteresis-aware detection (AUDR-03):
+        - Requires N consecutive speech frames to confirm speech start
+        - Requires M consecutive silence frames to confirm speech end
+        - Short pauses (<1.2s) within a sentence do not stop recording
+        """
         frames: list[np.ndarray] = []
-        silence_chunks = 0
-        max_silence_chunks = int(VAD_SILENCE_TIMEOUT_S * 1000 / CHUNK_DURATION_MS)
         max_total_chunks = int(MAX_RECORDING_S * 1000 / CHUNK_DURATION_MS)
+        speech_confirmed = False
 
         for _ in range(max_total_chunks):
             chunk = await self._recorder.read_chunk()
@@ -251,15 +273,22 @@ class Ears:
                 continue
 
             frames.append(chunk)
+            is_active = self._adaptive_vad.process_chunk(chunk)
 
-            if self._vad.detect_speech(chunk):
-                silence_chunks = 0
-            else:
-                silence_chunks += 1
-                if silence_chunks >= max_silence_chunks and len(frames) > max_silence_chunks:
-                    frames = frames[: len(frames) - silence_chunks + 2]
-                    logger.debug("end of speech", frames=len(frames))
-                    break
+            # Track when speech has been confirmed at least once
+            if is_active:
+                speech_confirmed = True
+                continue
+
+            # Only stop if speech was confirmed and hysteresis says silence
+            if speech_confirmed and self._adaptive_vad.state == HysteresisState.SILENCE:
+                # Trim trailing silence frames but keep a small buffer
+                trailing = self._adaptive_vad._consecutive_silence
+                trim_count = max(0, trailing - 2)
+                if trim_count > 0 and len(frames) > trim_count:
+                    frames = frames[: len(frames) - trim_count]
+                logger.debug("end of speech (hysteresis)", frames=len(frames))
+                break
 
         return frames
 
@@ -293,5 +322,10 @@ class Ears:
             EarsState.LISTENING_FOR_WAKE_WORD,
             f"Transcribed: '{result.text}'",
         )
-        logger.info("transcription complete", text=result.text, confidence=result.confidence, duration_ms=duration_ms)
+        logger.info(
+            "transcription complete",
+            text=result.text,
+            confidence=result.confidence,
+            duration_ms=duration_ms,
+        )
         return result

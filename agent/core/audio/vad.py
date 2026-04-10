@@ -2,6 +2,9 @@
 
 Single responsibility: determine if an audio chunk contains speech.
 Uses Silero VAD (ONNX) with energy-based fallback.
+
+Note: For adaptive thresholds and hysteresis, wrap this detector
+with AdaptiveVAD from core.audio.adaptive_vad.
 """
 
 from __future__ import annotations
@@ -14,10 +17,10 @@ from core.audio.recorder import SAMPLE_RATE
 
 logger = logging.getLogger("voxagent.audio.vad")
 
-# ── Named Constants ───────────────────────────────
+# -- Named Constants --
 
 SPEECH_THRESHOLD: float = 0.5  # Silero VAD confidence threshold
-ENERGY_THRESHOLD: float = 500.0  # RMS energy threshold for fallback
+ENERGY_THRESHOLD: float = 500.0  # RMS energy threshold for fallback (legacy default)
 
 
 class VoiceActivityDetector:
@@ -26,6 +29,10 @@ class VoiceActivityDetector:
     Attempts to use the Silero VAD ONNX model for accurate detection.
     Falls back to simple RMS energy-based detection if Silero is
     unavailable or fails.
+
+    For adaptive thresholds and hysteresis, wrap this instance
+    with ``AdaptiveVAD`` which delegates detection here but adds
+    ambient noise estimation and state machine logic.
 
     Args:
         speech_threshold: Silero VAD confidence threshold.
@@ -77,6 +84,28 @@ class VoiceActivityDetector:
         if self._model is not None:
             return self._silero_detect(audio_chunk)
         return self._energy_detect(audio_chunk)
+
+    def detect_speech_with_energy(
+        self, audio_chunk: np.ndarray, energy_threshold: float
+    ) -> bool:
+        """Determine if a chunk contains speech using a custom energy threshold.
+
+        When Silero VAD is loaded, uses it directly (ignoring energy_threshold).
+        Otherwise uses the provided threshold instead of the hardcoded default.
+
+        This is the integration point for AdaptiveVAD's dynamic thresholds.
+
+        Args:
+            audio_chunk: Audio frame (int16 numpy array).
+            energy_threshold: Dynamic RMS energy threshold.
+
+        Returns:
+            True if speech is detected in the chunk.
+        """
+        if self._model is not None:
+            return self._silero_detect(audio_chunk)
+        rms = float(np.sqrt(np.mean(audio_chunk.astype(np.float32) ** 2)))
+        return rms > energy_threshold
 
     def _silero_detect(self, audio_chunk: np.ndarray) -> bool:
         """Run Silero VAD model on an audio chunk."""
