@@ -3,6 +3,7 @@
 
 import pytest
 
+from core.audio.earcons import EarconType
 from core.hands import DANGEROUS_ACTIONS
 from core.mouth import RESPONSE_TEMPLATES, Mouth
 from skills.base import SkillIntent, SkillResult
@@ -22,19 +23,19 @@ class TestDangerousActions:
 
 
 class TestMouthPlayEarcon:
-    """Test Mouth.play_earcon stub."""
+    """Test Mouth.play_earcon with EarconType enum."""
 
     @pytest.mark.asyncio
     async def test_play_earcon_does_not_raise(self) -> None:
         mouth = Mouth()
-        result = await mouth.play_earcon("wake")
+        result = await mouth.play_earcon(EarconType.ACKNOWLEDGE)
         assert result is None
 
     @pytest.mark.asyncio
     async def test_play_earcon_with_various_sounds(self) -> None:
         mouth = Mouth()
-        for sound in ("wake", "done", "error", "confirm"):
-            result = await mouth.play_earcon(sound)
+        for earcon_type in (EarconType.ACKNOWLEDGE, EarconType.ERROR, EarconType.PROGRESS):
+            result = await mouth.play_earcon(earcon_type)
             assert result is None
 
 
