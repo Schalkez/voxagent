@@ -1,19 +1,26 @@
 """MEMORY module: SQLite storage for conversations and preferences.
 
 Uses aiosqlite for async database access. Database schema is versioned
-for safe migrations.
+for safe migrations. Includes auto-prune for bounded growth with
+configurable TTL.
 """
 
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import aiosqlite
 
 logger = logging.getLogger("voxagent.memory")
+
+# ── Constants ──
+
+DEFAULT_CONVERSATION_TTL_DAYS = 30
+MIN_CONVERSATION_TTL_DAYS = 1
+MAX_CONVERSATIONS_LIMIT = 100_000
 
 _SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS conversations (
@@ -266,3 +273,102 @@ class Memory:
             rows = await cursor.fetchall()
 
         return {str(row[0]): str(row[1]) for row in rows}
+
+    async def prune_old_conversations(
+        self,
+        ttl_days: int = DEFAULT_CONVERSATION_TTL_DAYS,
+    ) -> int:
+        """Delete conversations older than the TTL threshold.
+
+        Only deletes records older than the safe horizon. Never touches
+        conversations from the current day to avoid breaking active
+        context windows.
+
+        Args:
+            ttl_days: Number of days to retain conversations.
+                Must be >= MIN_CONVERSATION_TTL_DAYS.
+
+        Returns:
+            Number of deleted conversation entries.
+        """
+        if self._db is None:
+            return 0
+
+        ttl_days = max(ttl_days, MIN_CONVERSATION_TTL_DAYS)
+        cutoff = datetime.now(tz=timezone.utc) - timedelta(days=ttl_days)
+        cutoff_iso = cutoff.isoformat()
+
+        cursor = await self._db.execute(
+            "DELETE FROM conversations WHERE timestamp < ?",
+            (cutoff_iso,),
+        )
+        deleted = cursor.rowcount
+        await self._db.commit()
+
+        if deleted > 0:
+            logger.info(
+                "Pruned %d old conversations (older than %d days)",
+                deleted,
+                ttl_days,
+            )
+
+        return deleted
+
+    async def enforce_max_conversations(
+        self,
+        max_count: int = MAX_CONVERSATIONS_LIMIT,
+    ) -> int:
+        """Enforce an upper bound on total conversation count.
+
+        Deletes the oldest entries when the total exceeds max_count.
+
+        Args:
+            max_count: Maximum number of conversations to retain.
+
+        Returns:
+            Number of deleted conversation entries.
+        """
+        if self._db is None:
+            return 0
+
+        total = await self.get_conversation_count()
+        if total <= max_count:
+            return 0
+
+        excess = total - max_count
+        cursor = await self._db.execute(
+            "DELETE FROM conversations WHERE id IN "
+            "(SELECT id FROM conversations ORDER BY id ASC LIMIT ?)",
+            (excess,),
+        )
+        deleted = cursor.rowcount
+        await self._db.commit()
+
+        if deleted > 0:
+            logger.info(
+                "Enforced max conversations: deleted %d (limit=%d)",
+                deleted,
+                max_count,
+            )
+
+        return deleted
+
+    async def auto_prune(
+        self,
+        ttl_days: int = DEFAULT_CONVERSATION_TTL_DAYS,
+        max_count: int = MAX_CONVERSATIONS_LIMIT,
+    ) -> int:
+        """Run all pruning strategies for bounded growth.
+
+        Combines TTL-based pruning and count-based pruning.
+
+        Args:
+            ttl_days: Number of days to retain conversations.
+            max_count: Maximum number of conversations to retain.
+
+        Returns:
+            Total number of deleted conversation entries.
+        """
+        deleted_ttl = await self.prune_old_conversations(ttl_days)
+        deleted_cap = await self.enforce_max_conversations(max_count)
+        return deleted_ttl + deleted_cap

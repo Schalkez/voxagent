@@ -5,6 +5,9 @@ Routes incoming text through a tiered system:
 - Tier 1: Small LLM for simple intents (1-3B params)
 - Tier 2: Medium LLM for reasoning (7-8B params)
 - Tier 3: Large LLM for complex tasks (32B+/cloud)
+
+PromptGuard runs on every input before any processing.
+LLM tool call parameters are validated via Pydantic models.
 """
 
 from __future__ import annotations
@@ -17,6 +20,8 @@ from typing import TYPE_CHECKING
 from core.errors import PipelineError, ProviderError
 from core.eyes import Eyes
 from core.logging import get_logger
+from core.param_extractor import extract_params
+from core.safety import PromptGuard
 from providers.base import Message
 from providers.registry import ProviderNotFoundError, ProviderRegistry
 from skills.base import BaseSkill
@@ -79,6 +84,7 @@ class Brain:
         self.registry = registry
         self.skills = {skill.name: skill for skill in skills}
         self.eyes = Eyes()
+        self._prompt_guard = PromptGuard()
 
         if config is not None:
             # Extract routing tiers from config into dict format
@@ -95,7 +101,8 @@ class Brain:
     async def process(self, text: str) -> Intent:
         """Route text through tier system and return structured intent.
 
-        Attempts Tier 0 (keyword) first, then escalates to higher tiers
+        Runs PromptGuard on every input before processing. Attempts
+        Tier 0 (keyword) first, then escalates to higher tiers
         if keyword matching fails or confidence is too low.
 
         Args:
@@ -104,6 +111,18 @@ class Brain:
         Returns:
             Intent with skill name, action, params, and routing metadata.
         """
+        # SAFE-04: PromptGuard check before any processing
+        is_safe, reason = self._prompt_guard.check(text)
+        if not is_safe:
+            logger.warning("prompt injection blocked", reason=reason, text=text[:100])
+            return Intent(
+                skill_name="unknown",
+                action="blocked",
+                params={"reason": reason},
+                confidence=0.0,
+                tier_used=Tier.ZERO,
+            )
+
         # Try Tier 0 first
         tier_zero_result = self._try_tier_zero(text)
         if tier_zero_result is not None:
@@ -188,6 +207,23 @@ class Brain:
                     args = {}
 
             if tool_name in self.skills:
+                # SAFE-03: Type-safe param extraction via Pydantic
+                extraction = extract_params(tool_name, args)
+                if extraction.success:
+                    return Intent(
+                        skill_name=tool_name,
+                        action=extraction.action,
+                        params=extraction.params,
+                        confidence=extraction.confidence,
+                        tier_used=target_tier,
+                    )
+
+                logger.warning(
+                    "param extraction failed, using raw fallback",
+                    skill=tool_name,
+                    error=extraction.error,
+                )
+                # Fallback: use raw extraction for backward compatibility
                 action = str(args.get("action", "default"))
                 params = {str(k): str(v) for k, v in args.items() if k not in ("action", "confidence")}
 

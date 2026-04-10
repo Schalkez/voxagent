@@ -2,6 +2,7 @@
 
 Uses pathlib for all file operations with async wrappers.
 Delete operations are marked as DANGEROUS and require confirmation.
+File operations are restricted to user-configurable allowed directories.
 """
 
 from __future__ import annotations
@@ -19,10 +20,53 @@ logger = logging.getLogger("voxagent.skills.file_manager")
 
 MAX_SEARCH_RESULTS = 50
 
+# ── Default allowed directories ──
+# Users can override via config. Empty list means all paths allowed (backward compat).
+_DEFAULT_ALLOWED_DIRS: list[str] = [
+    str(Path.home()),
+]
+
+
+def _resolve_allowed_dirs(allowed: list[str] | None = None) -> list[Path]:
+    """Resolve allowed directory paths to absolute Path objects.
+
+    Args:
+        allowed: List of directory path strings. None uses defaults.
+
+    Returns:
+        List of resolved Path objects.
+    """
+    dirs = allowed if allowed is not None else _DEFAULT_ALLOWED_DIRS
+    return [Path(d).resolve() for d in dirs if d]
+
+
+def _is_path_allowed(target: Path, allowed_dirs: list[Path]) -> bool:
+    """Check if a path falls within any allowed directory.
+
+    Args:
+        target: The resolved path to check.
+        allowed_dirs: List of allowed directory roots.
+
+    Returns:
+        True if path is within an allowed directory, or if no
+        restrictions are configured (empty list).
+    """
+    if not allowed_dirs:
+        return True
+
+    resolved = target.resolve()
+    return any(
+        resolved == allowed or allowed in resolved.parents
+        for allowed in allowed_dirs
+    )
+
 
 @register_skill
 class FileManagerSkill(BaseSkill):
-    """Lists, searches, moves, copies, and deletes files."""
+    """Lists, searches, moves, copies, and deletes files.
+
+    File operations are restricted to allowed directories (configurable).
+    """
 
     name = "file_manager"
     description = "Manage files and folders: list, search, move, copy, delete."
@@ -45,6 +89,38 @@ class FileManagerSkill(BaseSkill):
         ExecutionTier.SHELL,
     ]
     permissions: ClassVar[list[str]] = ["file:read", "file:write", "file:delete"]
+
+    def __init__(self, allowed_directories: list[str] | None = None) -> None:
+        """Initialize the FileManagerSkill.
+
+        Args:
+            allowed_directories: List of directory paths that file
+                operations are restricted to. None uses defaults
+                (user home directory).
+        """
+        super().__init__()
+        self._allowed_dirs = _resolve_allowed_dirs(allowed_directories)
+
+    def _check_path_allowed(self, path: Path) -> SkillResult | None:
+        """Return a failure SkillResult if path is outside allowed dirs.
+
+        Args:
+            path: Resolved path to validate.
+
+        Returns:
+            SkillResult.fail if blocked, None if allowed.
+        """
+        if _is_path_allowed(path, self._allowed_dirs):
+            return None
+
+        logger.warning("path blocked by directory restriction: %s", path)
+        return SkillResult.fail(
+            error=f"Path outside allowed directories: {path}",
+            tts_response="Đường dẫn này nằm ngoài vùng cho phép.",
+            error_code="path_not_allowed",
+            error_severity="warning",
+            tier_used=ExecutionTier.NATIVE_API,
+        )
 
     async def can_handle(self, intent: SkillIntent) -> bool:
         """Determine if this skill can handle the given intent."""
@@ -99,6 +175,11 @@ class FileManagerSkill(BaseSkill):
         """
         try:
             target = Path(path_str).resolve()
+
+            # SAFE-06: Directory restriction check
+            blocked = self._check_path_allowed(target)
+            if blocked is not None:
+                return blocked
 
             if not target.is_dir():
                 return SkillResult.fail(
@@ -159,6 +240,12 @@ class FileManagerSkill(BaseSkill):
 
         try:
             target = Path(path_str).resolve()
+
+            # SAFE-06: Directory restriction check
+            blocked = self._check_path_allowed(target)
+            if blocked is not None:
+                return blocked
+
             pattern = f"*{query}*" if "*" not in query else query
 
             matches = await asyncio.to_thread(
@@ -206,6 +293,13 @@ class FileManagerSkill(BaseSkill):
         try:
             src = Path(source).resolve()
             dst = Path(destination).resolve()
+
+            # SAFE-06: Directory restriction check for both paths
+            for check_path in (src, dst):
+                blocked = self._check_path_allowed(check_path)
+                if blocked is not None:
+                    return blocked
+
             await asyncio.to_thread(shutil.move, str(src), str(dst))
 
             logger.info("Moved: %s → %s", src, dst)
@@ -243,6 +337,12 @@ class FileManagerSkill(BaseSkill):
         try:
             src = Path(source).resolve()
             dst = Path(destination).resolve()
+
+            # SAFE-06: Directory restriction check for both paths
+            for check_path in (src, dst):
+                blocked = self._check_path_allowed(check_path)
+                if blocked is not None:
+                    return blocked
 
             if src.is_dir():
                 await asyncio.to_thread(shutil.copytree, str(src), str(dst))
@@ -285,6 +385,11 @@ class FileManagerSkill(BaseSkill):
 
         try:
             target = Path(path_str).resolve()
+
+            # SAFE-06: Directory restriction check
+            blocked = self._check_path_allowed(target)
+            if blocked is not None:
+                return blocked
 
             if not target.exists():
                 return SkillResult.fail(

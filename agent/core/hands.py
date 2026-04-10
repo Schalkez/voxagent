@@ -5,10 +5,13 @@ Execution Strategy (mandatory priority order):
 - Tier B: App / Service API (Playwright, Gmail API, Spotify API)
 - Tier C: UI Automation (pywinauto, pyobjc, AT-SPI)
 - Tier D: Mouse / Keyboard (PyAutoGUI — last resort only)
+
+Per-skill execution timeout is enforced via asyncio.timeout.
 """
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -18,6 +21,7 @@ from skills.base import (
     SKILL_ERR_CANCELLED,
     SKILL_ERR_NOT_FOUND,
     SKILL_ERR_PERMISSION_DENIED,
+    SKILL_ERR_TIMEOUT,
     SKILL_ERR_UNSUPPORTED_ACTION,
     ExecutionTier,
     SkillIntent,
@@ -31,6 +35,11 @@ if TYPE_CHECKING:
     from core.mouth import Mouth
 
 logger = get_logger(module="hands")
+
+# ── Constants ──
+
+DEFAULT_SKILL_TIMEOUT_S = 30
+MAX_SKILL_TIMEOUT_S = 300
 
 
 @dataclass(frozen=True)
@@ -69,10 +78,11 @@ _CONFIRM_NO_WORDS = frozenset({"không", "thôi", "hủy", "no", "cancel", "dừ
 class Hands:
     """Executes actions using the cheapest viable execution tier.
 
-    Iterates through a skill's declared execution tiers (A→D)
+    Iterates through a skill's declared execution tiers (A->D)
     and uses the first one that succeeds. Dangerous actions
     require voice confirmation before execution.
     Permission checks enforce skill-level access control.
+    Per-skill execution timeout is enforced via asyncio.timeout.
     """
 
     def __init__(
@@ -80,6 +90,7 @@ class Hands:
         mouth: Mouth | None = None,
         ears: Ears | None = None,
         permission_manager: PermissionManager | None = None,
+        skill_timeout_s: float = DEFAULT_SKILL_TIMEOUT_S,
     ) -> None:
         """Initialize the Hands module.
 
@@ -87,13 +98,19 @@ class Hands:
             mouth: Mouth module for voice confirmation prompts.
             ears: Ears module for listening to confirmation responses.
             permission_manager: Optional PermissionManager for access control.
+            skill_timeout_s: Maximum seconds a skill may run before cancellation.
         """
         self._mouth = mouth
         self._ears = ears
         self._perm_mgr = permission_manager or PermissionManager()
+        self._skill_timeout_s = min(skill_timeout_s, MAX_SKILL_TIMEOUT_S)
 
     async def execute(self, intent: SkillIntent) -> SkillResult:
         """Execute an action using the loaded skills.
+
+        Enforces a per-skill execution timeout. If a skill exceeds
+        the timeout, it is forcefully cancelled and a timeout error
+        is returned so the pipeline can continue.
 
         Args:
             intent: The parsed SkillIntent from the Brain to execute.
@@ -143,15 +160,41 @@ class Hands:
                 error_code=SKILL_ERR_UNSUPPORTED_ACTION,
             )
 
-        # 3. Execute with tier priority (A → D)
+        # 3. Execute with tier priority (A -> D) and timeout enforcement
+        return await self._execute_with_timeout(skill, intent)
+
+    async def _execute_with_timeout(self, skill: object, intent: SkillIntent) -> SkillResult:
+        """Execute skill tiers with enforced timeout.
+
+        Args:
+            skill: The resolved BaseSkill instance.
+            intent: The parsed SkillIntent.
+
+        Returns:
+            SkillResult from the first successful tier, or error.
+        """
         last_error: str | None = None
         for tier in skill.execution_tiers:
             try:
                 logger.debug("trying execution tier", tier=tier.value, skill=skill.name)
-                result = await skill.execute(intent)
+                async with asyncio.timeout(self._skill_timeout_s):
+                    result = await skill.execute(intent)
                 if result.success:
                     return result
                 last_error = result.error
+            except TimeoutError:
+                logger.warning(
+                    "skill execution timed out",
+                    skill=skill.name,
+                    tier=tier.value,
+                    timeout_s=self._skill_timeout_s,
+                )
+                return SkillResult.fail(
+                    error=f"Skill '{skill.name}' timed out after {self._skill_timeout_s}s",
+                    tts_response="Thao tác đã quá thời gian cho phép.",
+                    error_code=SKILL_ERR_TIMEOUT,
+                    tier_used=tier,
+                )
             except (VoxError, RuntimeError, OSError, TypeError, ValueError) as exc:
                 last_error = f"Tier {tier.value} failed: {exc}"
                 logger.warning(last_error)

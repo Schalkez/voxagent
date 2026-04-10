@@ -8,7 +8,9 @@ def test_terminal_security():
     # Safe allowed commands
     assert _is_command_safe("echo hello") is True
     assert _is_command_safe("dir C:/") is True
-    assert _is_command_safe("git status") is True
+
+    # SAFE-02: git removed from allowlist
+    assert _is_command_safe("git status") is False
 
     # Blocked by missing prefix (not in whitelist)
     assert _is_command_safe("wget https://malicious.com") is False
@@ -45,4 +47,4 @@ async def test_terminal_execution_fixes():
     intent_blocked = SkillIntent(skill_name="terminal", action="run_command", params={"command": "curl google.com"}, raw_text="curl google")
     result_blocked = await skill.execute(intent_blocked)
     assert result_blocked.success is False
-    assert "blocked by safety filter" in str(result_blocked.error)
+    assert "blocked by safety filter" in str(result_blocked.error).lower()

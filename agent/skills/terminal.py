@@ -1,67 +1,42 @@
 """Terminal Skill: Execute shell commands and capture output.
 
 Uses asyncio.to_thread + subprocess.run for safe async execution.
-Dangerous commands are blocked by a sanitization step.
+Commands are validated via AST-based structural parsing (not regex).
+python/pip/node/git are removed from the allowlist -- they are
+arbitrary code execution vectors by design.
 """
 
 from __future__ import annotations
 
 import asyncio
-import logging
 import platform
-import re
-import shlex
 import subprocess
-import unicodedata
 from typing import ClassVar
 
+from core.logging import get_logger
 from skills.base import BaseSkill, ExecutionTier, SkillIntent, SkillResult
 from skills.registry import register_skill
+from skills.terminal_validator import validate_command
 
-logger = logging.getLogger("voxagent.skills.terminal")
+logger = get_logger(module="skills.terminal")
 
 _IS_WINDOWS = platform.system() == "Windows"
 
 COMMAND_TIMEOUT_S = 30
 
-BLOCKED_PATTERNS = frozenset({"rm -rf /", "format", "del /s /q"})
-
-ALLOWED_COMMAND_PREFIXES = frozenset({
-    "ls", "dir", "echo", "cat", "head", "tail", "wc",
-    "find", "grep", "git", "python", "pip", "node", "npm",
-    "pwd", "whoami", "date", "uptime", "df", "free",
-    "tasklist", "systeminfo", "ping"
-})
-
-DANGEROUS_SHELL_CHARS = re.compile(r'[;&|`$><\n]|\$\(')
-
-
 
 def _is_command_safe(command: str) -> bool:
-    """Check if a command is safe to execute.
+    """Check if a command passes AST-based validation.
+
+    Thin wrapper around ``validate_command`` for backward compatibility.
 
     Args:
-        command: The shell command string to validate.
+        command: Raw shell command string.
 
     Returns:
-        True if the command passes safety checks.
+        True if the command is considered safe to execute.
     """
-    command = unicodedata.normalize('NFKC', command)
-    if DANGEROUS_SHELL_CHARS.search(command):
-        return False
-
-    command_lower = command.lower().strip()
-    if any(pattern in command_lower for pattern in BLOCKED_PATTERNS):
-        return False
-
-    try:
-        parts = shlex.split(command_lower, posix=not _IS_WINDOWS)
-        if not parts or parts[0] not in ALLOWED_COMMAND_PREFIXES:
-            return False
-    except ValueError:
-        return False  # Unclosed quotes or invalid shlex
-
-    return True
+    return validate_command(command).is_safe
 
 
 @register_skill
@@ -126,19 +101,27 @@ class TerminalSkill(BaseSkill):
                 tier_used=ExecutionTier.SHELL,
             )
 
-        if not _is_command_safe(command):
+        validation = validate_command(command)
+        if not validation.is_safe:
+            logger.warning(
+                "command blocked by validator",
+                command=command,
+                reason=validation.reason,
+            )
             return SkillResult.fail(
-                error=f"Command blocked by safety filter: {command}",
+                error=f"Command blocked by safety filter: {validation.reason}",
                 tts_response="Lệnh này bị chặn vì lý do an toàn.",
                 error_code="command_blocked",
                 error_severity="warning",
                 tier_used=ExecutionTier.SHELL,
             )
 
+        # Use the pre-parsed args from the validator
+        cmd_args = list(validation.parsed_args)
+
         try:
-            cmd_args = shlex.split(command, posix=not _IS_WINDOWS)
             # Handle Windows built-ins like 'dir' or 'echo' which fail without shell=True
-            if _IS_WINDOWS and cmd_args and cmd_args[0] in {"dir", "echo", "type"}:
+            if _IS_WINDOWS and cmd_args and cmd_args[0].lower() in {"dir", "echo", "type"}:
                 cmd_args = ["cmd.exe", "/c", *cmd_args]
 
             result = await asyncio.to_thread(
@@ -154,7 +137,7 @@ class TerminalSkill(BaseSkill):
             stderr = result.stderr.strip()
 
             if result.returncode == 0:
-                logger.info("Command succeeded: %s", command)
+                logger.info("command succeeded", command=command)
                 stdout = stdout[:200] if stdout else "(không có output)"
                 return SkillResult.ok(
                     tts_response="Đã chạy lệnh thành công.",
@@ -162,7 +145,7 @@ class TerminalSkill(BaseSkill):
                     tier_used=ExecutionTier.SHELL,
                 )
 
-            logger.warning("Command failed (rc=%d): %s", result.returncode, command)
+            logger.warning("command failed", returncode=result.returncode, command=command)
             return SkillResult.fail(
                 error=f"Exit code {result.returncode}: {stderr or stdout}",
                 tts_response="Lệnh chạy không thành công.",
@@ -179,7 +162,7 @@ class TerminalSkill(BaseSkill):
                 tier_used=ExecutionTier.SHELL,
             )
         except (OSError, subprocess.SubprocessError) as e:
-            logger.warning("Failed to execute command '%s': %s", command, e)
+            logger.warning("failed to execute command", command=command, error=str(e))
             return SkillResult.fail(
                 error=str(e),
                 tts_response="Không thể chạy lệnh này.",

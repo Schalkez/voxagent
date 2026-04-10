@@ -1,5 +1,6 @@
 """Tests for the FastAPI management server."""
 
+import os
 from collections.abc import Generator
 
 import pytest
@@ -7,12 +8,28 @@ from fastapi.testclient import TestClient
 
 from api.server import app
 
+# ── Auth token for tests ──
+_TEST_TOKEN = "test-api-token-for-tests"
+
 
 @pytest.fixture
 def client() -> Generator[TestClient, None, None]:
-    """Create a test client for the FastAPI app with lifespan context."""
-    with TestClient(app) as client:
-        yield client
+    """Create a test client for the FastAPI app with lifespan context.
+
+    Sets a known auth token via env var so the lifespan initializes
+    with the same token that the test client uses.
+    """
+    old = os.environ.get("VOXAGENT_API_TOKEN")
+    os.environ["VOXAGENT_API_TOKEN"] = _TEST_TOKEN
+    try:
+        with TestClient(app) as client:
+            client.headers["Authorization"] = f"Bearer {_TEST_TOKEN}"
+            yield client
+    finally:
+        if old is None:
+            os.environ.pop("VOXAGENT_API_TOKEN", None)
+        else:
+            os.environ["VOXAGENT_API_TOKEN"] = old
 
 
 class TestProviderEndpoints:
