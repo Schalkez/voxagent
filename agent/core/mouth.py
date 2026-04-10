@@ -1,7 +1,8 @@
 """MOUTH module: Text-to-speech output with Vietnamese templates.
 
 Integrates with TTSProvider to synthesize speech and plays audio
-through the system speakers using sounddevice.
+through the system speakers. Supports both batch and streaming
+TTS playback via StreamingPlayer + sentence chunking.
 """
 
 from __future__ import annotations
@@ -14,13 +15,21 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from core.audio.streaming_player import PlayerConfig, StreamingPlayer
+from core.audio.text_chunker import split_sentences
 from core.errors import AudioError
 from core.logging import get_logger
 
 if TYPE_CHECKING:
+    from core.audio.interrupt_controller import InterruptController
     from providers.base import TTSProvider
 
 logger = get_logger(module="mouth")
+
+# ── Constants ────────────────────────────────────────────────────────────────
+
+PLAYBACK_SAMPLE_RATE = 16_000
+PLAYBACK_CHANNELS = 1
 
 
 @dataclass(frozen=True)
@@ -39,13 +48,13 @@ class SpeechConfig:
 
 
 RESPONSE_TEMPLATES: dict[str, str] = {
-    "success": "Đã {action} rồi nha",
-    "report": "Hiện tại {state}. {detail}",
-    "error": "Không {action} được vì {reason}",
-    "confirm": "Ý anh là {option_a} hay {option_b}?",
-    "thinking": "Để tôi xem...",
-    "dangerous": "Hành động {action} có thể nguy hiểm. Anh có chắc không?",
-    "cancelled": "Đã hủy thao tác.",
+    "success": "Da {action} roi nha",
+    "report": "Hien tai {state}. {detail}",
+    "error": "Khong {action} duoc vi {reason}",
+    "confirm": "Y anh la {option_a} hay {option_b}?",
+    "thinking": "De toi xem...",
+    "dangerous": "Hanh dong {action} co the nguy hiem. Anh co chac khong?",
+    "cancelled": "Da huy thao tac.",
 }
 
 _DEFAULT_CONFIG = SpeechConfig()
@@ -56,18 +65,28 @@ class Mouth:
 
     Supports multiple TTS providers (Edge TTS, Piper, OpenAI, ElevenLabs)
     and provides a template system for consistent Vietnamese responses.
+    Offers both batch ``speak()`` and streaming ``speak_streaming()`` modes.
     """
 
-    def __init__(self, tts_provider: TTSProvider | None = None) -> None:
+    def __init__(
+        self,
+        tts_provider: TTSProvider | None = None,
+        interrupt: InterruptController | None = None,
+    ) -> None:
         """Initialize the Mouth module.
 
         Args:
             tts_provider: TTS provider for speech synthesis. If None, speak() is a no-op.
+            interrupt: Optional interrupt controller for barge-in support.
         """
         self._tts = tts_provider
+        self._interrupt = interrupt
 
     async def speak(self, text: str, config: SpeechConfig | None = None) -> None:
         """Synthesize text to speech and play through speakers.
+
+        Uses the batch path: synthesize full audio, then play.
+        For lower latency, prefer ``speak_streaming()``.
 
         Args:
             text: Text to speak.
@@ -77,7 +96,7 @@ class Mouth:
             return
 
         if self._tts is None:
-            logger.warning("no TTS provider configured — skipping speech", text=text[:50])
+            logger.warning("no TTS provider configured -- skipping speech", text=text[:50])
             return
 
         cfg = config or _DEFAULT_CONFIG
@@ -89,6 +108,101 @@ class Mouth:
         except (AudioError, RuntimeError, OSError):
             logger.exception("failed to speak", text=text[:50])
 
+    async def speak_streaming(self, text: str, config: SpeechConfig | None = None) -> None:
+        """Stream TTS: split text -> synthesize per sentence -> play with pre-buffer.
+
+        Pipeline:
+        1. Split text at sentence boundaries
+        2. For each sentence, stream TTS audio chunks
+        3. Decode MP3 -> PCM via miniaudio
+        4. Enqueue PCM chunks into StreamingPlayer
+        5. Player starts after pre-buffering 1-2 chunks (gapless)
+
+        Falls back to batch ``speak()`` if streaming is not available.
+
+        Args:
+            text: Text to speak.
+            config: Optional speech configuration overrides.
+        """
+        if not text:
+            return
+
+        if self._tts is None:
+            logger.warning("no TTS provider configured -- skipping speech", text=text[:50])
+            return
+
+        cfg = config or _DEFAULT_CONFIG
+        sentences = split_sentences(text)
+
+        if not sentences:
+            return
+
+        player = StreamingPlayer(
+            config=PlayerConfig(
+                sample_rate=PLAYBACK_SAMPLE_RATE,
+                channels=PLAYBACK_CHANNELS,
+                volume=cfg.volume,
+            ),
+            interrupt=self._interrupt,
+        )
+
+        # Run producer and player concurrently
+        producer_task = asyncio.create_task(
+            self._produce_audio(sentences, cfg, player),
+        )
+        play_task = asyncio.create_task(player.play())
+
+        try:
+            await asyncio.gather(producer_task, play_task)
+        except (AudioError, RuntimeError, OSError):
+            logger.exception("streaming speak failed", text=text[:50])
+            producer_task.cancel()
+            play_task.cancel()
+        finally:
+            metrics = player.metrics
+            logger.debug(
+                "streaming speak complete",
+                text=text[:50],
+                chunks=metrics.chunks_played,
+                underruns=metrics.underruns,
+                interrupted=metrics.interrupted,
+            )
+
+    async def _produce_audio(
+        self,
+        sentences: list[str],
+        config: SpeechConfig,
+        player: StreamingPlayer,
+    ) -> None:
+        """Synthesize sentences and feed decoded PCM to the player queue.
+
+        For each sentence, calls ``synthesize_stream()`` on the TTS provider,
+        decodes MP3 chunks to PCM via miniaudio, and enqueues them.
+
+        Args:
+            sentences: Text chunks to synthesize.
+            config: Speech configuration.
+            player: StreamingPlayer to enqueue audio into.
+        """
+        try:
+            for sentence in sentences:
+                if self._interrupt and self._interrupt.is_interrupted:
+                    break
+
+                async for mp3_chunk in self._tts.synthesize_stream(
+                    sentence,
+                    voice=config.voice,
+                    speed=config.speed,
+                ):
+                    if self._interrupt and self._interrupt.is_interrupted:
+                        break
+
+                    pcm = _decode_mp3_to_pcm(mp3_chunk)
+                    if pcm.size > 0:
+                        await player.enqueue(pcm)
+        finally:
+            await player.enqueue_sentinel()
+
     async def play_earcon(self, sound: str) -> None:
         """Play a short notification sound.
 
@@ -98,7 +212,7 @@ class Mouth:
         Args:
             sound: Sound identifier (e.g., 'beep', 'ding', 'error').
         """
-        # TODO(Phase 2): Implement earcon playback with bundled WAV files
+        # TODO(Phase 7): Implement earcon playback with bundled WAV files
         logger.debug("earcon requested (not yet implemented)", sound=sound)
 
     def format_response(self, template_name: str, **kwargs: str) -> str:
@@ -118,11 +232,67 @@ class Mouth:
         return template.format(**kwargs)
 
 
+# ── Private Helpers ──────────────────────────────────────────────────────────
+
+
+def _decode_mp3_to_pcm(mp3_data: bytes) -> np.ndarray:
+    """Decode MP3 bytes to int16 PCM using miniaudio.
+
+    Uses miniaudio's decode functions for incremental MP3-to-PCM
+    conversion without buffering the full stream (Pitfall P1.3).
+
+    Falls back to pydub if miniaudio is not available.
+
+    Args:
+        mp3_data: Raw MP3 audio bytes.
+
+    Returns:
+        PCM audio as int16 numpy array (16kHz mono).
+    """
+    try:
+        import miniaudio  # type: ignore[import-untyped]
+
+        decoded = miniaudio.decode(
+            mp3_data,
+            output_format=miniaudio.SampleFormat.SIGNED16,
+            nchannels=PLAYBACK_CHANNELS,
+            sample_rate=PLAYBACK_SAMPLE_RATE,
+        )
+        return np.frombuffer(decoded.samples, dtype=np.int16).copy()
+    except ImportError:
+        pass
+    except Exception:
+        logger.debug("miniaudio decode failed, falling back to pydub")
+
+    # Fallback: pydub (batch decode)
+    return _decode_mp3_to_pcm_pydub(mp3_data)
+
+
+def _decode_mp3_to_pcm_pydub(mp3_data: bytes) -> np.ndarray:
+    """Fallback MP3 decoder using pydub.
+
+    Args:
+        mp3_data: Raw MP3 audio bytes.
+
+    Returns:
+        PCM audio as int16 numpy array (16kHz mono).
+    """
+    try:
+        from pydub import AudioSegment  # type: ignore[import-untyped]
+
+        audio = AudioSegment.from_mp3(io.BytesIO(mp3_data))
+        audio = audio.set_frame_rate(PLAYBACK_SAMPLE_RATE).set_channels(PLAYBACK_CHANNELS).set_sample_width(2)
+        return np.frombuffer(audio.raw_data, dtype=np.int16).copy()
+    except ImportError:
+        logger.warning("neither miniaudio nor pydub available for MP3 decoding")
+        return np.array([], dtype=np.int16)
+
+
 async def _play_wav(wav_data: bytes, volume: float = 1.0) -> None:
     """Play WAV audio bytes through the default speaker.
 
     Uses asyncio.to_thread to avoid blocking the event loop
-    during sounddevice playback.
+    during sounddevice playback. Kept for batch ``speak()`` path.
 
     Args:
         wav_data: Raw audio data in WAV format.
@@ -131,7 +301,7 @@ async def _play_wav(wav_data: bytes, volume: float = 1.0) -> None:
     try:
         import sounddevice as sd  # type: ignore[import-untyped]
     except ImportError:
-        logger.warning("sounddevice not installed — cannot play audio")
+        logger.warning("sounddevice not installed -- cannot play audio")
         return
 
     def _play_blocking() -> None:
