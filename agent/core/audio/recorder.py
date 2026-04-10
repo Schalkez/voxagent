@@ -3,11 +3,17 @@
 Single responsibility: open/close audio stream, write raw chunks
 into a pre-allocated ring buffer. The sounddevice callback never
 allocates memory or blocks.
+
+Supports mic muting (AUDR-01): when ``is_muted`` is True, captured
+audio is discarded (not fed to VAD/STT) but the stream stays open
+so wake word detection can still read raw chunks from the callback.
 """
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+
+import threading
 
 import numpy as np
 
@@ -66,6 +72,11 @@ class AudioRecorder:
             target_sample_rate=sample_rate,
             target_channels=1,
         )
+        # AUDR-01: Mic mute flag — when True, read_chunk() returns None
+        # but the callback still writes to the ring buffer so wake word
+        # detection can access raw audio via read_chunk_raw().
+        self._muted = False
+        self._mute_lock = threading.Lock()
 
     @property
     def is_active(self) -> bool:
@@ -76,6 +87,35 @@ class AudioRecorder:
     def ring_buffer(self) -> AudioRingBuffer:
         """Direct access to the ring buffer for metric inspection."""
         return self._ring_buffer
+
+    @property
+    def is_muted(self) -> bool:
+        """Whether the mic is muted (AUDR-01: input discarded during TTS)."""
+        with self._mute_lock:
+            return self._muted
+
+    def mute(self) -> None:
+        """Mute the microphone — read_chunk() will return None.
+
+        The hardware stream stays open and the ring buffer keeps receiving
+        data so wake word detection via ``read_chunk_raw()`` still works.
+        """
+        with self._mute_lock:
+            if not self._muted:
+                self._muted = True
+                logger.info("mic muted (AUDR-01: echo prevention)")
+
+    def unmute(self) -> None:
+        """Unmute the microphone and drain stale audio.
+
+        Drains the ring buffer to prevent Whisper from transcribing
+        buffered TTS echo captured while muted.
+        """
+        with self._mute_lock:
+            if self._muted:
+                self._muted = False
+                self._ring_buffer.drain()
+                logger.info("mic unmuted, stale audio drained")
 
     async def start(self) -> None:
         """Open the microphone stream.
@@ -123,6 +163,23 @@ class AudioRecorder:
 
     async def read_chunk(self) -> npt.NDArray[np.int16] | None:
         """Read one audio chunk from the ring buffer with timeout.
+
+        When muted (AUDR-01), returns None immediately — prevents
+        Whisper from transcribing the assistant's own TTS output.
+
+        Returns:
+            Audio chunk (int16 ndarray) or None if muted/timed out.
+        """
+        if self.is_muted:
+            return None
+        return await self._ring_buffer.read(timeout=AUDIO_QUEUE_TIMEOUT_S)
+
+    async def read_chunk_raw(self) -> npt.NDArray[np.int16] | None:
+        """Read one audio chunk regardless of mute state.
+
+        Used by the wake word detector during SPEAKING state
+        (BGIN-01) so barge-in detection works even while mic
+        is muted for STT.
 
         Returns:
             Audio chunk (int16 ndarray) or None if timed out.

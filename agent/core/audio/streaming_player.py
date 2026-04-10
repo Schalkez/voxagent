@@ -34,6 +34,8 @@ DEFAULT_BLOCKSIZE = 1024
 PRE_BUFFER_CHUNKS = 2
 QUEUE_MAX_SIZE = 10
 SENTINEL = None  # Signals end of stream
+FADE_OUT_MS = 20  # BGIN-02: 15-25ms fade-out to prevent click/pop
+FADE_OUT_SAMPLES = int(DEFAULT_SAMPLE_RATE * FADE_OUT_MS / 1000)  # 320 samples at 16kHz
 
 
 @dataclass
@@ -197,10 +199,10 @@ class StreamingPlayer:
             time_info: PortAudio time info (unused).
             status: PortAudio status flags (unused).
         """
-        # Check interrupt
+        # Check interrupt — apply fade-out (BGIN-02)
         if self._interrupt and self._interrupt.is_interrupted:
-            outdata[:] = 0
             self._metrics.interrupted = True
+            _apply_fade_out(outdata, self._config.sample_rate)
             raise _StopCallback
 
         needed = frames * self._config.channels
@@ -305,5 +307,42 @@ class _StopCallback(Exception):
     """Raised inside the audio callback to signal sounddevice to stop the stream.
 
     sounddevice treats any exception from the callback as a stop signal.
-    This is the documented mechanism — not an error.
+    This is the documented mechanism -- not an error.
     """
+
+
+def _apply_fade_out(
+    outdata: np.ndarray,
+    sample_rate: int = DEFAULT_SAMPLE_RATE,
+) -> None:
+    """Apply a linear fade-out ramp to the output buffer (BGIN-02).
+
+    Ramps audio from current level to zero over ``FADE_OUT_MS``
+    milliseconds to prevent audible click/pop artifacts on interrupt.
+
+    The ramp uses the first ``fade_samples`` of the buffer; the
+    remainder is filled with silence.
+
+    Args:
+        outdata: The OutputStream output buffer (modified in-place).
+        sample_rate: Audio sample rate for calculating fade length.
+    """
+    total_frames = outdata.shape[0]
+    fade_samples = min(int(sample_rate * FADE_OUT_MS / 1000), total_frames)
+
+    if fade_samples <= 0:
+        outdata[:] = 0
+        return
+
+    # Linear ramp from 1.0 -> 0.0 over fade_samples frames
+    ramp = np.linspace(1.0, 0.0, fade_samples, dtype=np.float32)
+
+    # Apply ramp to the fade region
+    for ch in range(outdata.shape[1]):
+        outdata[:fade_samples, ch] = (
+            outdata[:fade_samples, ch].astype(np.float32) * ramp
+        ).astype(outdata.dtype)
+
+    # Silence the rest
+    if fade_samples < total_frames:
+        outdata[fade_samples:] = 0
