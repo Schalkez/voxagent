@@ -34,11 +34,12 @@ class TestAudioRecorder:
         result = await recorder.read_chunk()
         assert result is None
 
-    def test_drain_queue(self) -> None:
+    def test_drain_ring_buffer(self) -> None:
         recorder = AudioRecorder()
-        recorder._audio_queue.put_nowait(np.zeros(100, dtype=np.int16))
-        recorder._drain_queue()
-        assert recorder._audio_queue.empty()
+        recorder.ring_buffer.write(np.zeros(CHUNK_SAMPLES, dtype=np.int16))
+        assert recorder.ring_buffer.size == 1
+        recorder.ring_buffer.drain()
+        assert recorder.ring_buffer.size == 0
 
     @pytest.mark.asyncio
     async def test_stop_when_not_started(self) -> None:
