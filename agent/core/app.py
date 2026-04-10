@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING
 
 import structlog
 
+from core.audio.earcons import EarconType
 from core.audio.interrupt_controller import InterruptController
 from core.autopilot import Autopilot
 from core.brain import Brain
@@ -336,8 +337,13 @@ class VoxAgentApp:
 
                 # -- SPEAKING phase (with barge-in support) --
                 if result.tts_response:
+                    if not result.success:
+                        # ERRH-03: Play error earcon before spoken error
+                        await self._mouth.play_earcon(EarconType.ERROR)
                     await self._speak_with_barge_in(result.tts_response)
                 elif result.error:
+                    # ERRH-03: Play error earcon before spoken error
+                    await self._mouth.play_earcon(EarconType.ERROR)
                     await self._speak_with_barge_in(f"Co loi: {result.error}")
                 else:
                     # No TTS needed — return directly to LISTENING
@@ -354,6 +360,8 @@ class VoxAgentApp:
                     **ve.context,
                 )
                 if ve.user_message:
+                    # ERRH-03: Play error earcon before spoken error
+                    await self._mouth.play_earcon(EarconType.ERROR)
                     await self._speak_with_barge_in(ve.user_message)
                 else:
                     self._pipeline_sm.force_reset()
