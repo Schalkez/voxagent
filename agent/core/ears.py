@@ -24,6 +24,7 @@ import numpy as np
 
 from core.audio.adaptive_vad import AdaptiveVAD, AdaptiveVADConfig, HysteresisState
 from core.audio.converter import AudioConverter
+from core.audio.earcons import EarconType, play_earcon
 from core.audio.recorder import CHUNK_DURATION_MS, AudioRecorder
 from core.audio.vad import VoiceActivityDetector
 from core.audio.wake_word import WakeWordDetector
@@ -258,6 +259,9 @@ class Ears:
             f"Waiting for '{self._config.wake_word.phrase}'...",
         )
         await self._wait_for_wake_word()
+
+        # PROG-01: Immediate earcon on wake word detection (<200ms)
+        asyncio.create_task(play_earcon(EarconType.ACKNOWLEDGE))
 
         # Step 2: Record until silence (hysteresis-aware)
         self._emit(EarsState.RECORDING_SPEECH, "Recording...")
