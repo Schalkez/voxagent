@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from core.audio.earcons import EarconType, play_earcon
 from core.audio.streaming_player import PlayerConfig, StreamingPlayer
 from core.audio.text_chunker import split_sentences
 from core.errors import AudioError
@@ -275,17 +276,23 @@ class Mouth:
         finally:
             await player.enqueue_sentinel()
 
-    async def play_earcon(self, sound: str) -> None:
+    async def play_earcon(self, earcon_type: EarconType) -> None:
         """Play a short notification sound.
 
-        Used for feedback sounds like confirmation beeps,
-        error tones, and thinking indicators.
+        Delegates to the earcon system which generates tones
+        programmatically and plays them via sounddevice.
+
+        ERRH-03: Error earcon is audibly distinct from acknowledge.
+        PROG-01: Acknowledge earcon plays within 200ms of wake word.
 
         Args:
-            sound: Sound identifier (e.g., 'beep', 'ding', 'error').
+            earcon_type: Which earcon to play (ACKNOWLEDGE, ERROR, PROGRESS).
         """
-        # TODO(Phase 7): Implement earcon playback with bundled WAV files
-        logger.debug("earcon requested (not yet implemented)", sound=sound)
+        try:
+            await play_earcon(earcon_type)
+            logger.debug("earcon played", type=earcon_type.name)
+        except (AudioError, RuntimeError, OSError):
+            logger.warning("earcon playback failed", type=earcon_type.name)
 
     def format_response(self, template_name: str, **kwargs: str) -> str:
         """Format a response using Vietnamese templates.
