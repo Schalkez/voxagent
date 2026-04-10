@@ -7,6 +7,7 @@ Execution Strategy (mandatory priority order):
 - Tier D: Mouse / Keyboard (PyAutoGUI — last resort only)
 
 Per-skill execution timeout is enforced via asyncio.timeout.
+PROG-02: Timeout-based progress updates for long-running skills.
 """
 
 from __future__ import annotations
@@ -40,6 +41,15 @@ logger = get_logger(module="hands")
 
 DEFAULT_SKILL_TIMEOUT_S = 30
 MAX_SKILL_TIMEOUT_S = 300
+PROGRESS_INITIAL_DELAY_S = 3.0
+PROGRESS_REPEAT_INTERVAL_S = 5.0
+
+PROGRESS_MESSAGES = (
+    "Đang xử lý...",
+    "Vẫn đang xử lý...",
+    "Gần xong rồi...",
+    "Vẫn đang thực hiện, xin chờ...",
+)
 
 
 @dataclass(frozen=True)
@@ -164,7 +174,10 @@ class Hands:
         return await self._execute_with_timeout(skill, intent)
 
     async def _execute_with_timeout(self, skill: object, intent: SkillIntent) -> SkillResult:
-        """Execute skill tiers with enforced timeout.
+        """Execute skill tiers with enforced timeout and progress updates.
+
+        PROG-02: If execution exceeds PROGRESS_INITIAL_DELAY_S, speaks
+        periodic progress updates via Mouth until skill completes.
 
         Args:
             skill: The resolved BaseSkill instance.
@@ -178,7 +191,7 @@ class Hands:
             try:
                 logger.debug("trying execution tier", tier=tier.value, skill=skill.name)
                 async with asyncio.timeout(self._skill_timeout_s):
-                    result = await skill.execute(intent)
+                    result = await self._run_with_progress(skill, intent, tier)
                 if result.success:
                     return result
                 last_error = result.error
@@ -212,6 +225,60 @@ class Hands:
             tts_response="Không thể thực hiện lệnh này.",
             error_code="tier_exhausted",
         )
+
+    async def _run_with_progress(
+        self, skill: object, intent: SkillIntent, tier: ExecutionTier,
+    ) -> SkillResult:
+        """Execute a skill with concurrent progress announcements.
+
+        PROG-02: Starts a background task that speaks progress updates
+        if execution exceeds PROGRESS_INITIAL_DELAY_S. Cancels the
+        progress task when execution completes.
+
+        Args:
+            skill: The resolved BaseSkill instance.
+            intent: The parsed SkillIntent.
+            tier: Current execution tier.
+
+        Returns:
+            SkillResult from skill execution.
+        """
+        progress_task = asyncio.create_task(self._announce_progress(skill.name))
+
+        try:
+            result = await skill.execute(intent)
+            return result
+        finally:
+            progress_task.cancel()
+            try:
+                await progress_task
+            except asyncio.CancelledError:
+                pass
+
+    async def _announce_progress(self, skill_name: str) -> None:
+        """Speak periodic progress updates for long-running skills.
+
+        PROG-02: Waits PROGRESS_INITIAL_DELAY_S, then speaks the first
+        message. Repeats every PROGRESS_REPEAT_INTERVAL_S with rotating
+        messages until cancelled.
+
+        Args:
+            skill_name: Name of the executing skill (for logging).
+        """
+        await asyncio.sleep(PROGRESS_INITIAL_DELAY_S)
+
+        for i in range(len(PROGRESS_MESSAGES)):
+            message = PROGRESS_MESSAGES[i]
+            logger.info("speaking progress update", skill=skill_name, message=message)
+
+            if self._mouth is not None:
+                try:
+                    await self._mouth.speak(message)
+                except (RuntimeError, OSError):
+                    logger.warning("progress announcement failed")
+
+            if i < len(PROGRESS_MESSAGES) - 1:
+                await asyncio.sleep(PROGRESS_REPEAT_INTERVAL_S)
 
     async def _require_confirmation(self, action: str, description: str) -> bool:
         """Request voice confirmation for dangerous actions.
