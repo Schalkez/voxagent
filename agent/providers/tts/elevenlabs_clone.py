@@ -2,16 +2,17 @@
 
 Implements VoiceCloneProvider using the ElevenLabs API v1
 for text-to-speech synthesis with voice cloning support.
+Uses the shared httpx.AsyncClient from HttpProvider for connection pooling.
 """
 
 from __future__ import annotations
 
-import logging
 import os
 
+from core.logging import get_logger
 from providers.tts.voice_cloning import VoiceCloneProvider
 
-logger = logging.getLogger("voxagent.providers.tts.elevenlabs_clone")
+logger = get_logger(module="providers.tts.elevenlabs_clone")
 
 _BASE_URL = "https://api.elevenlabs.io/v1"
 _DEFAULT_MODEL = "eleven_multilingual_v2"
@@ -70,14 +71,8 @@ class ElevenLabsCloneProvider(VoiceCloneProvider):
             Raw audio bytes in WAV format.
 
         Raises:
-            RuntimeError: If the API call fails or httpx is not installed.
+            RuntimeError: If the API call fails.
         """
-        try:
-            import httpx
-        except ImportError as err:
-            msg = "httpx not installed. Run: pip install httpx"
-            raise RuntimeError(msg) from err
-
         voice_id = voice if _looks_like_voice_id(voice) else _DEFAULT_VOICE_ID
         url = f"{_BASE_URL}/text-to-speech/{voice_id}"
         headers = _build_headers()
@@ -87,17 +82,16 @@ class ElevenLabsCloneProvider(VoiceCloneProvider):
             "voice_settings": {"stability": 0.5, "similarity_boost": 0.75, "speed": speed},
         }
 
-        async with httpx.AsyncClient(timeout=_TIMEOUT_SECONDS) as client:
-            response = await client.post(url, headers=headers, json=payload)
-            _raise_on_api_error(response)
+        response = await self.http_client.post(url, headers=headers, json=payload)
+        _raise_on_api_error(response)
 
         audio_bytes = response.content
         logger.debug(
-            "Synthesized %d chars -> %d bytes (voice=%s, speed=%.1f)",
-            len(text),
-            len(audio_bytes),
-            voice_id,
-            speed,
+            "synthesized via elevenlabs",
+            text_len=len(text),
+            audio_bytes=len(audio_bytes),
+            voice=voice_id,
+            speed=speed,
         )
         return audio_bytes
 
@@ -118,23 +112,16 @@ class ElevenLabsCloneProvider(VoiceCloneProvider):
             msg = "At least one audio sample is required for voice cloning."
             raise RuntimeError(msg)
 
-        try:
-            import httpx
-        except ImportError as err:
-            msg = "httpx not installed. Run: pip install httpx"
-            raise RuntimeError(msg) from err
-
         url = f"{_BASE_URL}/voices/add"
         headers = _build_headers(content_type=False)
         files = _build_sample_files(audio_samples)
         data = {"name": voice_name}
 
-        async with httpx.AsyncClient(timeout=_CLONE_TIMEOUT_SECONDS) as client:
-            response = await client.post(url, headers=headers, data=data, files=files)
-            _raise_on_api_error(response)
+        response = await self.http_client.post(url, headers=headers, data=data, files=files)
+        _raise_on_api_error(response)
 
         voice_id: str = response.json()["voice_id"]
-        logger.info("Cloned voice '%s' -> %s", voice_name, voice_id)
+        logger.info("cloned voice", voice_name=voice_name, voice_id=voice_id)
         return voice_id
 
     async def list_cloned_voices(self) -> list[str]:
@@ -146,22 +133,15 @@ class ElevenLabsCloneProvider(VoiceCloneProvider):
         Raises:
             RuntimeError: If the API call fails.
         """
-        try:
-            import httpx
-        except ImportError as err:
-            msg = "httpx not installed. Run: pip install httpx"
-            raise RuntimeError(msg) from err
-
         url = f"{_BASE_URL}/voices"
         headers = _build_headers()
 
-        async with httpx.AsyncClient(timeout=_TIMEOUT_SECONDS) as client:
-            response = await client.get(url, headers=headers)
-            _raise_on_api_error(response)
+        response = await self.http_client.get(url, headers=headers)
+        _raise_on_api_error(response)
 
         voices = response.json().get("voices", [])
         cloned = [v["voice_id"] for v in voices if v.get("category") == "cloned"]
-        logger.debug("Found %d cloned voices", len(cloned))
+        logger.debug("found cloned voices", count=len(cloned))
         return cloned
 
     async def delete_voice(self, voice_id: str) -> bool:
@@ -172,27 +152,17 @@ class ElevenLabsCloneProvider(VoiceCloneProvider):
 
         Returns:
             True if deletion succeeded.
-
-        Raises:
-            RuntimeError: If the API call fails.
         """
-        try:
-            import httpx
-        except ImportError as err:
-            msg = "httpx not installed. Run: pip install httpx"
-            raise RuntimeError(msg) from err
-
         url = f"{_BASE_URL}/voices/{voice_id}"
         headers = _build_headers()
 
-        async with httpx.AsyncClient(timeout=_TIMEOUT_SECONDS) as client:
-            response = await client.delete(url, headers=headers)
+        response = await self.http_client.delete(url, headers=headers)
 
         if response.status_code == 200:
-            logger.info("Deleted voice %s", voice_id)
+            logger.info("deleted voice", voice_id=voice_id)
             return True
 
-        logger.warning("Failed to delete voice %s: %d", voice_id, response.status_code)
+        logger.warning("failed to delete voice", voice_id=voice_id, status=response.status_code)
         return False
 
     async def health_check(self) -> bool:
@@ -202,13 +172,10 @@ class ElevenLabsCloneProvider(VoiceCloneProvider):
             True if the API responds successfully.
         """
         try:
-            import httpx
-
             headers = _build_headers()
-            async with httpx.AsyncClient(timeout=_TIMEOUT_SECONDS) as client:
-                response = await client.get(f"{_BASE_URL}/voices", headers=headers)
-                return response.status_code == 200
-        except (ImportError, RuntimeError, httpx.HTTPError):
+            response = await self.http_client.get(f"{_BASE_URL}/voices", headers=headers)
+            return response.status_code == 200
+        except (RuntimeError, Exception):
             return False
 
 
@@ -236,7 +203,10 @@ def _build_sample_files(audio_samples: list[bytes]) -> list[tuple[str, tuple[str
     Returns:
         List of file tuples for httpx multipart upload.
     """
-    return [("files", (f"sample_{i}.wav", sample, "audio/wav")) for i, sample in enumerate(audio_samples)]
+    return [
+        ("files", (f"sample_{i}.wav", sample, "audio/wav"))
+        for i, sample in enumerate(audio_samples)
+    ]
 
 
 def _looks_like_voice_id(voice: str) -> bool:

@@ -1,6 +1,6 @@
 """OpenAI LLM provider implementation.
 
-Uses httpx for async HTTP requests to the OpenAI Chat Completions API.
+Uses the shared httpx.AsyncClient from HttpProvider for connection pooling.
 API key is retrieved from the OS keyring.
 """
 
@@ -13,31 +13,43 @@ from providers.base import LLMProvider, Message, ModelInfo
 
 _API_URL = "https://api.openai.com/v1/chat/completions"
 _DEFAULT_MODEL = "gpt-4o-mini"
+_HEALTH_CHECK_TIMEOUT_SECONDS = 5.0
 
 
 class OpenAIProvider(LLMProvider):
     """OpenAI Chat Completions provider."""
 
     def __init__(self, model: str = _DEFAULT_MODEL) -> None:
+        """Initialize the OpenAI provider.
+
+        Args:
+            model: OpenAI model identifier.
+        """
         self._model = model
         self._api_key = get_key("openai") or ""
 
-    async def chat(self, messages: list[Message], **kwargs: object) -> str:
-        """Send messages to OpenAI and return the text response."""
-        headers = {
+    def _headers(self) -> dict[str, str]:
+        """Build authorization headers.
+
+        Returns:
+            Dict of HTTP headers.
+        """
+        return {
             "Authorization": f"Bearer {self._api_key}",
             "Content-Type": "application/json",
         }
+
+    async def chat(self, messages: list[Message], **kwargs: object) -> str:
+        """Send messages to OpenAI and return the text response."""
         payload = {
             "model": self._model,
             "messages": [{"role": m.role, "content": m.content} for m in messages],
             **kwargs,
         }
-        async with httpx.AsyncClient(timeout=30) as client:
-            resp = await client.post(_API_URL, json=payload, headers=headers)
-            resp.raise_for_status()
-            data = resp.json()
-            return str(data["choices"][0]["message"]["content"])
+        resp = await self.http_client.post(_API_URL, json=payload, headers=self._headers())
+        resp.raise_for_status()
+        data = resp.json()
+        return str(data["choices"][0]["message"]["content"])
 
     async def chat_with_tools(
         self,
@@ -46,25 +58,20 @@ class OpenAIProvider(LLMProvider):
         **kwargs: object,
     ) -> dict[str, object]:
         """Send messages with tool definitions for function calling."""
-        headers = {
-            "Authorization": f"Bearer {self._api_key}",
-            "Content-Type": "application/json",
-        }
         payload = {
             "model": self._model,
             "messages": [{"role": m.role, "content": m.content} for m in messages],
             "tools": tools,
             **kwargs,
         }
-        async with httpx.AsyncClient(timeout=30) as client:
-            resp = await client.post(_API_URL, json=payload, headers=headers)
-            resp.raise_for_status()
-            data = resp.json()
-            choice = data["choices"][0]["message"]
-            if choice.get("tool_calls"):
-                tc = choice["tool_calls"][0]
-                return {"tool": tc["function"]["name"], "result": tc["function"]["arguments"]}
-            return {"tool": "", "result": choice.get("content", "")}
+        resp = await self.http_client.post(_API_URL, json=payload, headers=self._headers())
+        resp.raise_for_status()
+        data = resp.json()
+        choice = data["choices"][0]["message"]
+        if choice.get("tool_calls"):
+            tc = choice["tool_calls"][0]
+            return {"tool": tc["function"]["name"], "result": tc["function"]["arguments"]}
+        return {"tool": "", "result": choice.get("content", "")}
 
     def get_model_info(self) -> ModelInfo:
         """Return metadata about the OpenAI model."""

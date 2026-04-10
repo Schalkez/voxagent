@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(*)",
+
+      "Bash(ruff *)",
+      "Bash(npx prettier *)",
+
+      "Bash(python -m pytest *)",
+      "Bash(python -m mypy *)",
+      "Bash(python -m pip install *)",
+      "Bash(python -m pip list *)",
+      "Bash(python -c *)",
+      "Bash(pytest *)",
+      "Bash(mypy *)",
+
+      "Bash(pnpm run *)",
+      "Bash(pnpm install *)",
+      "Bash(npm run *)",
+      "Bash(node *)",
+
+      "Bash(git *)",
+      "Bash(gh pr *)",
+      "Bash(gh issue *)",
+      "Bash(gh api *)",
+
+      "Bash(ls *)",
+      "Bash(pwd)",
+      "Bash(which *)",
+      "Bash(where *)",
+      "Bash(mkdir -p *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(wc *)",
+      "Bash(diff *)",
+      "Bash(jq *)",
+      "Bash(curl -s *)"
+    ]
+  }
+}

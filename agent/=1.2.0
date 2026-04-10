@@ -1,0 +1,11 @@
+Collecting tenacity
+  Downloading tenacity-9.1.4-py3-none-any.whl.metadata (1.2 kB)
+Collecting aiobreaker
+  Downloading aiobreaker-1.2.0-py3-none-any.whl.metadata (3.0 kB)
+Downloading tenacity-9.1.4-py3-none-any.whl (28 kB)
+Downloading aiobreaker-1.2.0-py3-none-any.whl (20 kB)
+Installing collected packages: tenacity, aiobreaker
+Successfully installed aiobreaker-1.2.0 tenacity-9.1.4
+
+[notice] A new release of pip is available: 25.0.1 -> 26.0.1
+[notice] To update, run: python.exe -m pip install --upgrade pip

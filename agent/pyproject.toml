@@ -133,6 +133,7 @@ markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: integration tests requiring external services",
     "platform: platform-specific tests (use with --platform flag)",
+    "requirement: maps test to a v1 requirement ID (e.g., 'BGIN-01')",
 ]
 addopts = "-v --tb=short"
 filterwarnings = ["ignore::DeprecationWarning"]

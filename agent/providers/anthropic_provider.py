@@ -1,6 +1,7 @@
 """Anthropic LLM provider implementation.
 
 Uses the Anthropic Messages API which differs from the OpenAI format.
+Uses the shared httpx.AsyncClient from HttpProvider for connection pooling.
 """
 
 from __future__ import annotations
@@ -13,16 +14,40 @@ from providers.base import LLMProvider, Message, ModelInfo
 _API_URL = "https://api.anthropic.com/v1/messages"
 _DEFAULT_MODEL = "claude-sonnet-4-20250514"
 _API_VERSION = "2023-06-01"
+_ANTHROPIC_READ_TIMEOUT_SECONDS = 60.0
 
 
 class AnthropicProvider(LLMProvider):
     """Anthropic Messages API provider."""
 
     def __init__(self, model: str = _DEFAULT_MODEL) -> None:
+        """Initialize the Anthropic provider.
+
+        Args:
+            model: Anthropic model identifier.
+        """
         self._model = model
         self._api_key = get_key("anthropic") or ""
 
+    def _get_http_timeout(self) -> httpx.Timeout:
+        """Return longer read timeout for Anthropic models.
+
+        Returns:
+            httpx.Timeout configured for Anthropic latencies.
+        """
+        return httpx.Timeout(
+            connect=5.0,
+            read=_ANTHROPIC_READ_TIMEOUT_SECONDS,
+            write=_ANTHROPIC_READ_TIMEOUT_SECONDS,
+            pool=5.0,
+        )
+
     def _build_headers(self) -> dict[str, str]:
+        """Build Anthropic-specific request headers.
+
+        Returns:
+            Dict of HTTP headers.
+        """
         return {
             "x-api-key": self._api_key,
             "anthropic-version": _API_VERSION,
@@ -30,7 +55,14 @@ class AnthropicProvider(LLMProvider):
         }
 
     def _to_anthropic_messages(self, messages: list[Message]) -> tuple[str, list[dict[str, str]]]:
-        """Convert Message list to Anthropic format (separate system prompt)."""
+        """Convert Message list to Anthropic format (separate system prompt).
+
+        Args:
+            messages: Standard Message list.
+
+        Returns:
+            Tuple of (system_prompt, anthropic_messages).
+        """
         system = ""
         converted: list[dict[str, str]] = []
         for m in messages:
@@ -51,12 +83,13 @@ class AnthropicProvider(LLMProvider):
         if system:
             payload["system"] = system
 
-        async with httpx.AsyncClient(timeout=60) as client:
-            resp = await client.post(_API_URL, json=payload, headers=self._build_headers())
-            resp.raise_for_status()
-            data = resp.json()
-            content_blocks = data.get("content", [])
-            return str(content_blocks[0]["text"]) if content_blocks else ""
+        resp = await self.http_client.post(
+            _API_URL, json=payload, headers=self._build_headers()
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        content_blocks = data.get("content", [])
+        return str(content_blocks[0]["text"]) if content_blocks else ""
 
     async def chat_with_tools(
         self,
@@ -75,14 +108,15 @@ class AnthropicProvider(LLMProvider):
         if system:
             payload["system"] = system
 
-        async with httpx.AsyncClient(timeout=60) as client:
-            resp = await client.post(_API_URL, json=payload, headers=self._build_headers())
-            resp.raise_for_status()
-            data = resp.json()
-            for block in data.get("content", []):
-                if block.get("type") == "tool_use":
-                    return {"tool": block["name"], "result": block.get("input", {})}
-            return {"tool": "", "result": data.get("content", [{}])[0].get("text", "")}
+        resp = await self.http_client.post(
+            _API_URL, json=payload, headers=self._build_headers()
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        for block in data.get("content", []):
+            if block.get("type") == "tool_use":
+                return {"tool": block["name"], "result": block.get("input", {})}
+        return {"tool": "", "result": data.get("content", [{}])[0].get("text", "")}
 
     def get_model_info(self) -> ModelInfo:
         """Return metadata about the Anthropic model."""
