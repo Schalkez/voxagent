@@ -66,6 +66,12 @@ INJECTION_PATTERNS: list[tuple[re.Pattern[str], str]] = [
         "Attempted to extract system prompt",
     ),
     (
+        re.compile(
+            r"(show|tell|reveal|display|repeat|what).*system\s+prompt", re.IGNORECASE
+        ),
+        "Attempted to extract system prompt",
+    ),
+    (
         re.compile(r"print\s+(your|the|system)\s+(prompt|instructions?|initial)", re.IGNORECASE),
         "Attempted to print system prompt",
     ),
