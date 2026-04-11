@@ -81,4 +81,14 @@ None yet.
 - Research pitfall P7: Barge-in (Phase 6) co-designed with mic muting (AUDR-01) in same phase
 
 ---
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260411-whu | Fix 6 failing tests across test_integration_safety test_mouth and test_phase10_coverage | 2026-04-11 | f839bea | [260411-whu-fix-6-failing-tests-across-test-integrat](./quick/260411-whu-fix-6-failing-tests-across-test-integrat/) |
+
+---
+Last activity: 2026-04-11 - Completed quick task 260411-whu: Fix 6 failing tests
+
 *State initialized: 2026-04-09*
