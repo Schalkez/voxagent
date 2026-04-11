@@ -1,247 +1,261 @@
-# 🤖 VOXAGENT — Voice Desktop Agent
+# VoxAgent -- Voice-Controlled Desktop AI Agent
 
-<p align="center">
-  <em>"Siri cao cấp điều khiển PC bằng giọng nói — hỗ trợ model local lẫn cloud, hiểu context, nhìn màn hình, tự hành động"</em>
-</p>
+![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue)
+![License](https://img.shields.io/badge/license-Apache%202.0-blue)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
+[![CI](https://img.shields.io/github/actions/workflow/status/voxagent/voxagent/ci.yml?label=CI)](https://github.com/voxagent/voxagent/actions)
 
-<p align="center">
-  <a href="https://github.com/voxagent/voxagent/actions"><img src="https://img.shields.io/github/actions/workflow/status/voxagent/voxagent/ci.yml?label=CI" alt="CI"></a>
-  <a href="https://pypi.org/project/voxagent-agent"><img src="https://img.shields.io/pypi/v/voxagent-agent" alt="PyPI"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue" alt="License"></a>
-  <img src="https://img.shields.io/badge/python-3.12%2B-blue" alt="Python 3.12+">
-  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey" alt="Platform">
-</p>
+A voice-first desktop automation agent. Say "Hey Vox" to control your computer.
 
----
-
-## ✨ Demo
-
-> *Nói "VoxAgent, khi Cursor xong thì check 100% chưa, chưa thì prompt tiếp" — rồi đi pha cà phê.*
-
-<!-- Demo GIF will be added after first working release -->
-<!-- ![Demo GIF](docs/assets/demo.gif) -->
-
-**VoxAgent** là AI agent chạy trên máy tính, luôn lắng nghe, nhận lệnh bằng **giọng nói**, thao tác máy tính ở tầng giao diện (chuột, bàn phím, đọc màn hình), và báo cáo kết quả bằng giọng nói. Hỗ trợ **cả model local lẫn cloud** — người dùng tự chọn provider cho từng tác vụ.
+VoxAgent listens for a wake word, transcribes speech, routes intents through a
+tiered model system, executes actions via a skill plugin system, and responds
+via text-to-speech. It runs locally on Windows, macOS, and Linux with a Python
+backend and a React dashboard for configuration and monitoring.
 
 ---
 
-## 🚀 Quick Start
+## Key Features
 
-### Cài đặt (1 lệnh)
+- **Wake word detection** ("Hey Vox") via openwakeword with ONNX runtime
+- **Tiered LLM routing** (keyword matching -> small LLM -> large LLM) for cost efficiency -- cheapest tier first, escalate only on failure
+- **10+ built-in skills**: app launch, media control, file management, terminal, browser automation, screen reading, code review, system control, and more
+- **Streaming TTS** with sentence-level chunking and gapless playback
+- **Barge-in support** -- interrupt VoxAgent mid-speech with "Hey Vox"
+- **Provider fallback chains** with circuit breakers and health caching
+- **Adaptive Voice Activity Detection** with ambient noise estimation via Silero VAD
+- **Safety hardening**: AST command validation, prompt injection detection, path sandboxing, shell allowlists, and dangerous-action voice confirmation
+- **Multi-language support**: Vietnamese, English, Japanese, Korean, Chinese
+- **React dashboard** for real-time configuration and monitoring at `http://localhost:8642`
+- **Provider-agnostic**: swap LLM, STT, TTS, and Vision providers without code changes
+- **Local-first**: core functionality works offline with Ollama + Piper + faster-whisper
 
-```bash
-pip install voxagent-agent
+---
+
+## Architecture
+
+```
+Mic --> [Ears] --> [Brain] --> [Hands] --> [Mouth] --> Speaker
+             |          |          |
+         [Memory]    [Eyes]   [Autopilot]
 ```
 
-Hoặc cài từ source:
+| Module    | Role                                                        |
+|-----------|-------------------------------------------------------------|
+| Ears      | Microphone capture, wake word detection, VAD, STT           |
+| Brain     | Tiered intent routing (Tier 0-3), function calling          |
+| Hands     | Skill resolution, permission enforcement, tiered execution  |
+| Mouth     | TTS synthesis and audio playback                            |
+| Eyes      | Screen understanding: UI tree, OCR, Vision LLM              |
+| Memory    | SQLite persistence for conversations, preferences, state    |
+| Autopilot | Background task scheduler (time, event, condition triggers) |
+
+For the full architecture reference, see [ARCHITECTURE.md](ARCHITECTURE.md).
+
+---
+
+## Quick Start
+
+### Prerequisites
+
+- Python 3.12 or later
+- A microphone and speakers
+- (Optional) Ollama for local LLM inference
+- (Optional) GPU with 8 GB+ VRAM for full local mode
+
+### Install
 
 ```bash
 git clone https://github.com/voxagent/voxagent
-cd voxagent
-pip install -e ".[dev]"
+cd voxagent/agent
+pip install -e ".[dev,audio,stt]"
 ```
 
-### Chạy lần đầu
+### Run
 
 ```bash
-voxagent setup   # Wizard hướng dẫn chọn providers & cấu hình
-voxagent start   # Khởi động — nói "VoxAgent" để bắt đầu
+voxagent setup          # Interactive wizard -- choose providers and profile
+voxagent start          # Start listening -- say "Hey Vox" to activate
 ```
 
-### Chạy với profile có sẵn
+### Start the Dashboard
 
 ```bash
-# Không có GPU, dùng cloud miễn phí
+voxagent-api            # API server on http://localhost:8642
+cd ../dashboard
+pnpm install && pnpm dev   # Dashboard on http://localhost:5173
+```
+
+---
+
+## Built-in Profiles
+
+VoxAgent ships with four configuration profiles that pre-select providers for
+common hardware setups:
+
+| Profile        | Best For       | GPU Required         | Internet Required |
+|----------------|----------------|----------------------|-------------------|
+| `full_local`   | Privacy, offline use | Yes (8 GB+ VRAM) | No                |
+| `cloud_free`   | Quick start    | No                   | Yes               |
+| `hybrid`       | Best quality   | Optional             | Yes               |
+| `budget_cloud` | Low cost       | No                   | Yes               |
+
+```bash
 voxagent start --profile cloud_free
-
-# Có GPU, chạy hoàn toàn offline
-voxagent start --profile full_local
-
-# Máy yếu, tối ưu chi phí
-voxagent start --profile budget_cloud
 ```
 
 ---
 
-## 🎯 Use Cases
+## Skills
 
-| Kịch bản | Lệnh | Thời gian |
-|---------|------|-----------|
-| Đang nấu ăn, bỏ qua quảng cáo | *"VoxAgent, skip"* | < 1.5s |
-| Kiểm tra Cursor đang code đến đâu | *"VoxAgent, Cursor xong chưa?"* | 3–5s |
-| Tự động prompt Cursor khi idle | *"VoxAgent, khi xong thì check rồi prompt tiếp"* | continuous |
-| Commit code | *"VoxAgent, commit, message là fix login bug"* | 5–10s |
-| Tìm file | *"VoxAgent, mở file report hôm qua"* | 2–5s |
-| Đọc notification | *"VoxAgent, ai nhắn gì?"* | < 2s |
+| Skill            | Execution Tiers      | Description                              |
+|------------------|----------------------|------------------------------------------|
+| App Launcher     | NATIVE_API, SHELL    | Open and close desktop applications      |
+| Media Control    | NATIVE_API, KEYBOARD | Play, pause, skip, volume via media keys |
+| System Control   | NATIVE_API, SHELL    | Shutdown, restart, lock, sleep           |
+| File Manager     | NATIVE_API, SHELL    | Create, move, copy, delete files         |
+| Browser Control  | APP_API              | Browser automation via Playwright CDP    |
+| Terminal         | SHELL                | Execute terminal commands (allowlisted)  |
+| Screen Reader    | NATIVE_API, UI       | Read screen content via Eyes module      |
+| Code Reviewer    | APP_API              | Code review powered by LLM              |
+| Marketplace      | APP_API              | Browse and install community skills      |
+| System Info      | NATIVE_API           | Query system information and processes   |
 
----
-
-## 🏗️ Kiến trúc
-
-```
-┌──────────────────────────────────────────────────────┐
-│              🤖 VOXAGENT SYSTEM ARCHITECTURE           │
-├──────────────────────────────────────────────────────┤
-│  🎤 EARS          🧠 BRAIN          🔊 MOUTH         │
-│  Wake Word    ──▶  Smart Router ──▶  TTS Output      │
-│  Whisper STT       LLM Tiers        Tiếng Việt       │
-│                    Memory                            │
-│                       │                              │
-│  👁️ EYES          🖐️ HANDS         ⏰ AUTOPILOT     │
-│  Screenshot        PyAutoGUI        File Watcher     │
-│  Win32/macOS API   Browser          Task Monitor     │
-│  OCR/Vision        Terminal         Cron Tasks       │
-│                                                      │
-│  📦 SKILL PLUGIN SYSTEM                              │
-│  media │ browser │ terminal │ files │ code │ ...     │
-└──────────────────────────────────────────────────────┘
-```
-
-Chi tiết: [ARCHITECTURE.md](ARCHITECTURE.md)
+Skills declare their supported execution tiers. The Hands module tries the
+cheapest tier first (A: Native API) and falls back through B (App API),
+C (UI Automation), and D (Keyboard) as needed.
 
 ---
 
-## 🔌 Provider Support
+## Provider Support
 
-VoxAgent hỗ trợ **provider-agnostic** — swap bất kỳ lúc nào mà không cần sửa code:
+VoxAgent is provider-agnostic. Swap any provider at runtime via configuration:
 
-| Loại | Providers hỗ trợ |
-|------|-----------------|
-| **LLM** | Ollama, llama.cpp, OpenAI, Claude, Gemini, Groq, DeepSeek, Mistral, OpenRouter |
-| **STT** | Whisper (local), OpenAI Whisper API, Deepgram, Google STT |
-| **TTS** | Piper (local), Edge TTS, OpenAI TTS, ElevenLabs, Google TTS |
-| **Vision** | Qwen-VL (local), GPT-4o, Claude, Gemini |
-
----
-
-## 💸 Chi phí ước tính (cloud)
-
-| Cách dùng | Provider gợi ý | Chi phí/ngày |
-|-----------|---------------|-------------|
-| Lệnh đơn giản | Groq (free tier) | **$0** |
-| Dùng cả ngày nhẹ | Groq + DeepSeek | < $0.10 |
-| Dev nặng + vision | Claude + GPT-4o | $1–3 |
-| Full local | Ollama | **$0** |
+| Type   | Supported Providers                                                          |
+|--------|------------------------------------------------------------------------------|
+| LLM    | Ollama, OpenAI, Anthropic, Groq, DeepSeek, Mistral, OpenRouter              |
+| STT    | faster-whisper (local), OpenAI Whisper API                                   |
+| TTS    | Edge TTS, Piper (local), ElevenLabs                                          |
+| Vision | OpenAI Vision, Anthropic Vision, Gemini Vision                               |
 
 ---
 
-## 📦 Cài đặt chi tiết
+## LLM Tier Routing
 
-### Yêu cầu hệ thống
+| Tier | Model Size  | Use Case                     | Latency Target |
+|------|-------------|------------------------------|----------------|
+| 0    | None        | Keyword pattern matching     | < 50 ms        |
+| 1    | 1-3B        | Simple intent classification | < 200 ms       |
+| 2    | 7-8B        | Reasoning, multi-step plans  | < 1 s          |
+| 3    | 32B+ / Cloud| Complex tasks, code review   | < 5 s          |
 
-| Mode | CPU | RAM | GPU | Ghi chú |
-|------|-----|-----|-----|---------|
-| Cloud mode | Dual-core | 4GB | Không cần | Cần internet |
-| Hybrid mode | Quad-core | 8–16GB | Tùy chọn | Recommended |
-| Full local | 6+ cores | 16–32GB | 8–24GB VRAM | Offline hoàn toàn |
+---
 
-### Hệ điều hành
+## Tech Stack
 
-- **Windows 10/11** ✅ (fully supported)
-- **macOS 12+** ✅ (cần cấp Accessibility permission)
-- **Linux (Ubuntu 22.04+)** 🔶 (experimental, AT-SPI required)
+| Layer     | Technology                                    |
+|-----------|-----------------------------------------------|
+| Backend   | Python 3.12+, FastAPI, uvicorn, asyncio       |
+| Frontend  | React 19, TypeScript 5.9, Tailwind CSS, Vite  |
+| Database  | SQLite via aiosqlite                           |
+| Audio     | sounddevice, openwakeword, Silero VAD, pydub   |
+| HTTP      | httpx (async)                                  |
+| Security  | OS keyring, bandit, prompt injection detection |
+| CI        | GitHub Actions, ruff, mypy, pytest, interrogate|
 
-### Cài model local (optional)
+---
+
+## Development
+
+### Clone and Install
 
 ```bash
-# Cài Ollama trước
-curl -fsSL https://ollama.ai/install.sh | sh
-
-# Download models cho từng tier
-voxagent download-models --profile hybrid
-# hoặc thủ công:
-ollama pull qwen2.5:1.5b    # Tier 1
-ollama pull llama3.1:8b     # Tier 2
+git clone https://github.com/voxagent/voxagent
+cd voxagent/agent
+pip install -e ".[dev,audio,stt]"
 ```
 
----
+### Run Tests
 
-## ⚙️ Cấu hình
-
-File cấu hình chính: `~/.voxagent/config.yaml`
-
-```yaml
-providers:
-  groq:
-    api_key: "gsk_..."      # Free tier rất nhanh
-  ollama:
-    base_url: "http://localhost:11434"
-
-routing:
-  tier_1: { provider: "groq",   model: "llama-3.1-8b-instant" }
-  tier_2: { provider: "ollama", model: "llama3.1:8b" }
-  tier_3: { provider: "anthropic", model: "claude-sonnet-4-20250514" }
-
-stt:
-  provider: "local"    # local | openai | deepgram | google
-
-tts:
-  provider: "piper"    # piper | edge | openai | elevenlabs
-```
-
-Xem thêm: [docs/configuration.md](docs/configuration.md)
-
----
-
-## 🌐 Server Mode (Headless API)
-
-VoxAgent tích hợp sẵn API Server nội bộ giúp chạy ngầm và cho phép giao tiếp với các nền tảng tự động hóa (e.g., Home Assistant, n8n, Zapier) mà không qua microphone.
-
-Khởi chạy bằng CLI:
 ```bash
-voxagent-api
+cd agent
+pytest tests/ --cov
 ```
 
-Gửi truy vấn POST để ra lệnh từ xa bằng JSON Payload (cổng mặc định `8642`):
+### Lint and Format
+
+```bash
+ruff check .                # Lint
+ruff format .               # Format
+mypy core/ providers/       # Type check
+bandit -c pyproject.toml -r core/   # Security scan
+interrogate -c pyproject.toml       # Docstring coverage
+```
+
+### Dashboard Development
+
+```bash
+cd dashboard
+pnpm install
+pnpm dev         # Vite dev server on http://localhost:5173
+pnpm build       # Production build
+```
+
+### Pre-commit Hooks
+
+```bash
+pre-commit install
+pre-commit run --all-files
+```
+
+---
+
+## Configuration
+
+Runtime configuration lives at `~/.voxagent/config.yaml`. API keys are stored
+in the OS keyring (Windows Credential Locker, macOS Keychain, or Linux
+SecretService) and are never written to config files.
+
+See [docs/configuration.md](docs/configuration.md) for the full reference.
+
+---
+
+## Server Mode
+
+VoxAgent includes a headless API server for programmatic integration with
+external platforms such as Home Assistant, n8n, or Zapier:
+
+```bash
+voxagent-api    # Starts on http://127.0.0.1:8642
+```
+
 ```bash
 curl -X POST http://127.0.0.1:8642/api/command \
      -H "Content-Type: application/json" \
      -H "X-VoxAgent-Key: <your_secret_key>" \
-     -d '{"text": "tắt máy tính sau 1 tiếng nữa"}'
+     -d '{"text": "shut down the computer in one hour"}'
 ```
 
 ---
 
-## 🔌 Skill / Plugin System
+## Documentation
 
-VoxAgent có thể mở rộng dễ dàng bằng skills. Xem hướng dẫn: [SKILL_DEVELOPMENT_GUIDE.md](SKILL_DEVELOPMENT_GUIDE.md)
-
-```python
-from voxagent.skills import BaseSkill, SkillResult
-
-class MyCustomSkill(BaseSkill):
-    name = "my_skill"
-    description = "Mô tả để LLM biết khi nào dùng skill này"
-    keywords = ["từ khoá", "trigger words"]
-
-    def execute(self, intent, context) -> SkillResult:
-        # logic của bạn ở đây
-        return SkillResult(success=True, tts_response="Xong rồi!")
-```
+- [Getting Started](docs/getting-started.md)
+- [Architecture](ARCHITECTURE.md)
+- [Configuration](docs/configuration.md)
+- [Skill Development Guide](docs/SKILL_DEVELOPMENT_GUIDE.md)
+- [API Reference](docs/api.md)
+- [Security Policy](docs/SECURITY.md)
+- [Roadmap](docs/ROADMAP.md)
 
 ---
 
-## 🤝 Đóng góp
+## Contributing
 
-Mọi đóng góp đều được chào đón! Xem [CONTRIBUTING.md](CONTRIBUTING.md) để bắt đầu.
-
-- 🐛 [Báo lỗi](https://github.com/voxagent/voxagent/issues/new?template=bug_report.md)
-- 💡 [Đề xuất tính năng](https://github.com/voxagent/voxagent/issues/new?template=feature_request.md)
-- 🔌 [Chia sẻ skill của bạn](https://github.com/voxagent/voxagent/discussions/categories/skills)
-- 💬 [Discord community](https://discord.gg/voxagent)
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for
+development setup, code quality standards, and the pull request process.
 
 ---
 
-## 📄 License
+## License
 
-Apache 2.0 — xem [LICENSE](LICENSE)
-
----
-
-## 🙏 Acknowledgements
-
-- [Whisper](https://github.com/openai/whisper) — Speech recognition
-- [openWakeWord](https://github.com/dscripka/openWakeWord) — Wake word detection
-- [Piper TTS](https://github.com/rhasspy/piper) — Local Vietnamese TTS
-- [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) — OCR tiếng Việt
-- [Ollama](https://ollama.ai) — Local LLM runtime
+Apache 2.0 -- see [LICENSE](LICENSE) for the full text.
