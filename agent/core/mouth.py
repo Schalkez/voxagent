@@ -53,19 +53,19 @@ class SpeechConfig:
 
 
 RESPONSE_TEMPLATES: dict[str, str] = {
-    "success": "Da {action} roi nha",
-    "report": "Hien tai {state}. {detail}",
-    "error": "Khong {action} duoc vi {reason}",
-    "confirm": "Y anh la {option_a} hay {option_b}?",
-    "thinking": "De toi xem...",
-    "dangerous": "Hanh dong {action} co the nguy hiem. Anh co chac khong?",
-    "cancelled": "Da huy thao tac.",
+    "success": "Đã {action} rồi nha",
+    "report": "Hiện tại {state}. {detail}",
+    "error": "Không {action} được vì {reason}",
+    "confirm": "Ý anh là {option_a} hay {option_b}?",
+    "thinking": "Để tôi xem...",
+    "dangerous": "Hành động {action} có thể nguy hiểm. Anh có chắc không?",
+    "cancelled": "Đã hủy thao tác.",
 }
 
 # ERRH-02: Spoken error messages for provider failures (zero silent failures)
-FALLBACK_ANNOUNCE_MSG = "Dang chuyen sang du phong."
-TTS_ALL_FAILED_MSG = "Khong the phat am thanh. Tat ca nha cung cap deu loi."
-PROVIDER_ERROR_MSG = "Co loi voi nha cung cap. Dang thu lai."
+FALLBACK_ANNOUNCE_MSG = "Đang chuyển sang dự phòng."
+TTS_ALL_FAILED_MSG = "Không thể phát âm thanh. Tất cả nhà cung cấp đều lỗi."
+PROVIDER_ERROR_MSG = "Có lỗi với nhà cung cấp. Đang thử lại."
 
 _DEFAULT_CONFIG = SpeechConfig()
 
